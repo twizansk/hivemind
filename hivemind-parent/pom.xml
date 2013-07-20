@@ -1,0 +1,54 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>twizansk.hivemind</groupId>
+  <artifactId>hivemind-parent</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>HiveMind::Parent</name>
+  <packaging>pom</packaging>
+  
+   <properties>
+     <group.id>twizansk.hivemind</group.id>
+     <akka.version>2.2.0</akka.version>
+     <testng.version>6.1.1</testng.version>
+  </properties>
+  
+  <dependencies>
+      
+    <!-- Akka -->
+  	<dependency>
+		<groupId>com.typesafe.akka</groupId>
+		<artifactId>akka-actor_2.10</artifactId>
+		<version>${akka.version}</version>
+	</dependency>
+	
+  	<dependency>
+		<groupId>com.typesafe.akka</groupId>
+		<artifactId>akka-remote_2.10</artifactId>
+		<version>${akka.version}</version>
+	</dependency>
+	
+  	<!-- HiveMind -->
+  	<dependency>
+  	    <groupId>${group.id}</groupId>
+  	    <artifactId>hivemind-messages</artifactId>
+  	    <version>${version}</version>
+  	</dependency>
+  	
+  	<!-- Test classes -->
+  	<dependency>
+	    <groupId>org.testng</groupId>
+	  	<artifactId>testng</artifactId>
+	  	<version>${testng.version}</version>
+	  	<scope>test</scope>
+	</dependency>
+	
+  	<dependency>
+	    <groupId>com.typesafe.akka</groupId>
+	  	<artifactId>akka-testkit_2.10</artifactId>
+	  	<version>${akka.version}</version>
+	  	<scope>test</scope>
+	</dependency>
+  	
+ 
+  </dependencies>
+</project>
