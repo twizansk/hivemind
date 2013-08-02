@@ -1,4 +1,4 @@
-package twizansk.hivemind.drone;
+package twizansk.hivemind.drone.data;
 
 import twizansk.hivemind.api.data.ITrainingSet;
 import twizansk.hivemind.api.data.TrainingSample;
@@ -23,7 +23,8 @@ public class DataFetcher extends UntypedActor {
 		if (msg instanceof FetchNext) {
 			TrainingSample sample = trainingSet.getNext();
 			getSender().tell(sample, getSelf());
-		} else
+		} else {
 			unhandled(msg);
+		}
 	}
 }

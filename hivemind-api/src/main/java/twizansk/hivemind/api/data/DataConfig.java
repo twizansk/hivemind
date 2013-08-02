@@ -9,8 +9,8 @@ package twizansk.hivemind.api.data;
  * @author Tommer Wizansky
  * 
  */
-public abstract class DataConfig {
+public interface DataConfig {
 
-	public abstract ITrainingSet createTrainingSet();
+	public ITrainingSet createTrainingSet();
 	
 }

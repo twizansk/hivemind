@@ -6,6 +6,7 @@ import twizansk.hivemind.api.data.ITrainingSet;
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.api.objective.Gradient;
 import twizansk.hivemind.api.objective.IObjectiveFunction;
+import twizansk.hivemind.drone.data.DataFetcher;
 import twizansk.hivemind.messages.drone.FetchNext;
 import twizansk.hivemind.messages.drone.UpdateModel;
 import twizansk.hivemind.messages.queen.Model;
@@ -56,8 +57,9 @@ public final class Drone extends UntypedActor {
 		if (msg instanceof UpdateDone) {
 			Future<UpdateModel> updateModelFuture = this.prepareModelUpdate(((UpdateDone) msg).currentModel);
 			Patterns.pipe(updateModelFuture, system.dispatcher()).to(getSender());
-		} else
+		} else {
 			unhandled(msg);
+		}
 	}
 
 	/**
@@ -69,7 +71,7 @@ public final class Drone extends UntypedActor {
 	 * 		Future wrapping the update step calculation.
 	 */
 	private Future<UpdateModel> prepareModelUpdate(final Model model) {
-		final Future<Object> trainingSampleFuture = Patterns.ask(dataFetcher, FetchNext.getInstance(), timeout);
+		final Future<Object> trainingSampleFuture = Patterns.ask(dataFetcher, FetchNext.instance(), timeout);
 		return trainingSampleFuture.map(new Mapper<Object, UpdateModel>() {
 
 			@Override

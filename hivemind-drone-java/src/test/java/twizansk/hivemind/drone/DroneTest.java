@@ -52,7 +52,7 @@ public class DroneTest {
 				objectiveFunction, 
 				trainingSet, 
 				system);
-		TestActorRef<Drone> ref = TestActorRef.create(system, props, "testB");
+		TestActorRef<Drone> ref = TestActorRef.create(system, props, "testDrone");
 		Future<Object> future = Patterns.ask(ref, new UpdateDone(new Model()), 3000);
 		UpdateModel updateModel = (UpdateModel) Await.result(future, Duration.create(1000, "seconds"));
 		Assert.assertNotNull(updateModel);
