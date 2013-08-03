@@ -10,7 +10,7 @@ public final class GetModel {
 
 	private static final GetModel instance = new GetModel();
 	
-	public static GetModel getInstance() {
+	public static GetModel instance() {
 		return instance;
 	}
 	

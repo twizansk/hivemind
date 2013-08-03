@@ -12,7 +12,7 @@ import akka.actor.UntypedActor;
 
 public class Queen extends UntypedActor {
 
-	private enum State {
+	enum State {
 		IDLE, ACTIVE
 	}
 
@@ -39,12 +39,12 @@ public class Queen extends UntypedActor {
 			getSender().tell(Ready.instance(), getSelf());
 		} else if (msg instanceof Stop) {
 			state = State.IDLE;
-			getSender().tell(NotReady.instance(), getSelf());
+			getSender().tell(new NotReady(msg), getSelf());
 		}
 		
 		// All other messages are only allowed if the state is ACTIVE
 		else if (state.equals(State.IDLE)) {
-			getSender().tell(NotReady.instance(), getSelf());
+			getSender().tell(new NotReady(msg), getSelf());
 		}
 		
 		// Here we do the real work.

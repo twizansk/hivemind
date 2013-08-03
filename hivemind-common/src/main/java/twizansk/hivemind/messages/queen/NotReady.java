@@ -4,11 +4,10 @@ import java.io.Serializable;
 
 public class NotReady implements Serializable {
 	private static final long serialVersionUID = 1L;
-	private final static NotReady instance = new NotReady();
+	public final Object message;
 	
-	private NotReady() {}
-	
-	public static NotReady instance() {
-		return instance;
+	public NotReady(Object message) {
+		this.message = message;
 	}
+	
 }

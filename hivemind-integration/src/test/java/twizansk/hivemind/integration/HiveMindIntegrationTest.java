@@ -67,9 +67,9 @@ public class HiveMindIntegrationTest {
 	@BeforeClass
 	public void init() throws Exception {
 		final ActorSystem system = ActorSystem.create("MySystem");
-		ActorRef tester = system.actorOf(Props.create(Initializer.class), "initializer");
-		Future<Object> queenFuture = Patterns.ask(tester, "GetQueen", timeout);
-		Future<Object> droneFuture = Patterns.ask(tester, "GetDrone", timeout);
+		ActorRef initializer = system.actorOf(Props.create(Initializer.class), "initializer");
+		Future<Object> queenFuture = Patterns.ask(initializer, "GetQueen", timeout);
+		Future<Object> droneFuture = Patterns.ask(initializer, "GetDrone", timeout);
 		this.queen = (ActorRef) Await.result(queenFuture, timeout.duration());
 		this.drone = (ActorRef) Await.result(droneFuture, timeout.duration());
 	}

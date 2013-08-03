@@ -30,7 +30,7 @@
   	<!-- HiveMind -->
   	<dependency>
   	    <groupId>${group.id}</groupId>
-  	    <artifactId>hivemind-messages</artifactId>
+  	    <artifactId>hivemind-common</artifactId>
   	    <version>${version}</version>
   	</dependency>
   	
