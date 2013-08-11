@@ -1,7 +1,9 @@
 package twizansk.hivemind.messages.queen;
 
-public final class UpdateDone {
+import java.io.Serializable;
 
+public final class UpdateDone implements Serializable {
+	private static final long serialVersionUID = 1L;
 	public final Model currentModel;
 
 	public UpdateDone(Model currentModel) {

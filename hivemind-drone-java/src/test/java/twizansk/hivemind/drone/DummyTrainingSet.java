@@ -7,7 +7,7 @@ public class DummyTrainingSet implements ITrainingSet {
 
 	@Override
 	public TrainingSample getNext() {
-		return null;
+		return new TrainingSample(new double[] {1.0, 2.0}, 3.0);
 	}
 
 }

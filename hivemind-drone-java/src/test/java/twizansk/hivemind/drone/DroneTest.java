@@ -81,7 +81,7 @@ public class DroneTest {
 		@Override
 		public Gradient getGradient(TrainingSample sample, Model model) {
 			this.gotGradient = true;
-			return new Gradient();
+			return new Gradient(null);
 		}
 	}
 

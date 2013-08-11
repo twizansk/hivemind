@@ -1,5 +1,6 @@
 package twizansk.hivemind.queen;
 
+import twizansk.hivemind.messages.drone.GetModel;
 import twizansk.hivemind.messages.drone.UpdateModel;
 import twizansk.hivemind.messages.external.Start;
 import twizansk.hivemind.messages.external.Stop;
@@ -48,6 +49,9 @@ public class Queen extends UntypedActor {
 		}
 		
 		// Here we do the real work.
+		else if (msg instanceof GetModel) {
+			getSender().tell(model, getSelf());
+		}
 		else if (msg instanceof UpdateModel) {
 			modelUpdater.update(((UpdateModel) msg), model);
 			getSender().tell(new UpdateDone(model), getSelf());

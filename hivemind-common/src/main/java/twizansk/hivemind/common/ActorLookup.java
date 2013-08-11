@@ -22,11 +22,11 @@ public class ActorLookup extends UntypedActor {
 	private final String path;
 	public static final String GET_ACTOR_REF = "get-actor-ref";
 	private volatile ActorRef ref;
-
-	public ActorLookup(String queenPath) {
-		this.path = queenPath;
-		ActorSelection queenSelection = getContext().actorSelection(queenPath);
-		queenSelection.tell(new Identify(queenPath), getSelf());
+	
+	public ActorLookup(String path) {
+		this.path = path;
+		ActorSelection queenSelection = getContext().system().actorSelection(path);
+		queenSelection.tell(new Identify(path), getSelf());
 	}
 
 	public static Props makeProps(String queenPath) {
@@ -36,7 +36,7 @@ public class ActorLookup extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		// Recieve the identity of the actor.
-		if (msg instanceof ActorIdentity && ((ActorIdentity) msg).getRef().path().equals(path)) {
+		if (msg instanceof ActorIdentity && ((ActorIdentity) msg).getRef().path().toString().equals(path)) {
 			this.ref = ((ActorIdentity) msg).getRef();
 		} 
 		
@@ -48,7 +48,7 @@ public class ActorLookup extends UntypedActor {
 						Duration.create(1, TimeUnit.SECONDS),
 						getSelf(), 
 						GET_ACTOR_REF, 
-						getContext().system().dispatcher(), null);
+						getContext().system().dispatcher(), getSender());
 			} 
 			
 			// Otherwise, send the reference to the requester.

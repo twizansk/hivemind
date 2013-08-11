@@ -10,6 +10,7 @@ import twizansk.hivemind.messages.external.Start;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.pattern.Patterns;
+import akka.util.Timeout;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -22,18 +23,14 @@ import com.typesafe.config.ConfigFactory;
  */
 public class DroneSystem {
 		
-	public void init(IObjectiveFunction objective, ITrainingSet trainingSet, String queenPath) {
+	public void init(IObjectiveFunction objective, ITrainingSet trainingSet, String queenPath) throws Exception {
 		final ActorSystem system = ActorSystem.create("DroneSystem");
 
 		// Look up the queen.
-		ActorRef queenLookup = system.actorOf(ActorLookup.makeProps(queenPath), "queenLookup");
-		Future<Object> future = Patterns.ask(queenLookup, ActorLookup.GET_ACTOR_REF, null);
-		ActorRef queen;
-		try {
-			queen = (ActorRef) Await.result(future, Duration.Inf()); 
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		ActorRef lookup = system.actorOf(ActorLookup.makeProps(queenPath));
+		Thread.sleep(1000);
+		Future<Object> f = Patterns.ask(lookup, ActorLookup.GET_ACTOR_REF, Timeout.longToTimeout(100000));
+		ActorRef queen = (ActorRef) Await.result(f, Duration.Inf());
 				
 		// Create the drone actor and start it.
 		ActorRef drone = system.actorOf(Drone.makeProps(
@@ -44,7 +41,7 @@ public class DroneSystem {
 		drone.tell(Start.instance(), null);
 	}
 	
-	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+	public static void main(String[] args) throws Exception {
 		Config config = ConfigFactory.load("drone");
 		Config dataConfig = ConfigFactory.load("data");
 		

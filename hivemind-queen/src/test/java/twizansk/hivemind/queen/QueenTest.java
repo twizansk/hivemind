@@ -65,7 +65,7 @@ public class QueenTest {
 			Props props = Queen.makeProps(new Model(), modelUpdater);
 			TestActorRef<Queen> ref = TestActorRef.create(system, props, "testQueen");
 			Await.result(Patterns.ask(ref, Start.instance(), 3000), Duration.create(1, TimeUnit.SECONDS));
-			Future<Object> future = Patterns.ask(ref, new UpdateModel(), 3000);
+			Future<Object> future = Patterns.ask(ref, new UpdateModel(null), 3000);
 			UpdateDone updateDone = (UpdateDone) Await.result(future, Duration.create(1000, "seconds"));
 			Assert.assertNotNull(updateDone);
 			Assert.assertTrue(future.isCompleted());
@@ -82,7 +82,7 @@ public class QueenTest {
 			MockModelUpdater modelUpdater = new MockModelUpdater();
 			Props props = Queen.makeProps(new Model(), modelUpdater);
 			TestActorRef<Drone> ref = TestActorRef.create(system, props, "testQueen");
-			Future<Object> future = Patterns.ask(ref, new UpdateModel(), 3000);
+			Future<Object> future = Patterns.ask(ref, new UpdateModel(null), 3000);
 			NotReady notReady = (NotReady) Await.result(future, Duration.create(1000, "seconds"));
 			Assert.assertNotNull(notReady);
 		} finally {

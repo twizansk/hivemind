@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+import twizansk.hivemind.api.data.EmptyDataSet;
 import twizansk.hivemind.api.data.ITrainingSet;
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.api.objective.Gradient;
@@ -13,6 +14,7 @@ import twizansk.hivemind.messages.drone.FetchNext;
 import twizansk.hivemind.messages.drone.GetModel;
 import twizansk.hivemind.messages.drone.UpdateModel;
 import twizansk.hivemind.messages.external.Start;
+import twizansk.hivemind.messages.external.Stop;
 import twizansk.hivemind.messages.queen.Model;
 import twizansk.hivemind.messages.queen.NotReady;
 import twizansk.hivemind.messages.queen.UpdateDone;
@@ -20,6 +22,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.dispatch.Mapper;
+import akka.dispatch.OnSuccess;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 
@@ -62,15 +65,16 @@ public final class Drone extends UntypedActor {
 		// Start the training.  Ask for the current model from the queen.
 		if (msg instanceof Start) {
 			this.state = State.WAITING_FOR_QUEEN;
-			this.queen.tell(GetModel.instance(), getSender());
+			this.queen.tell(GetModel.instance(), getSelf());
+		} else if (msg instanceof Stop) {
+			this.state = State.IDLE;
 		}
 
 		// If we are waiting for the first communication from the queen, and we
 		// got it, change the state to ACTIVE and start processing.
 		else if (msg instanceof Model && state.equals(State.WAITING_FOR_QUEEN)) {
 			this.state = State.ACTIVE;
-			Future<UpdateModel> updateModelFuture = this.prepareModelUpdate((Model)msg);
-			Patterns.pipe(updateModelFuture, getContext().dispatcher()).to(getSender());
+			this.prepareModelUpdateAndRespond(((Model) msg), getSender());
 		}
 
 		// Any other messages should only be handled when the drone is active.
@@ -93,32 +97,47 @@ public final class Drone extends UntypedActor {
 		// UpdateModel object contains the updated model which can now be used
 		// by the drone to calculate the next update step.
 		else if (msg instanceof UpdateDone) {
-			Future<UpdateModel> updateModelFuture = this.prepareModelUpdate(((UpdateDone) msg).currentModel);
-			Patterns.pipe(updateModelFuture, getContext().dispatcher()).to(getSender());
+			this.prepareModelUpdateAndRespond(((UpdateDone) msg).currentModel, getSender());
 		} else {
 			unhandled(msg);
 		}
 	}
 
 	/**
-	 * Retrieves the next training sample and constructs a future, wrapping the
-	 * calculation of the next update.
+	 * Retrieves the next training sample, calculates the model update and responds with an {@link UpdateModel} request.
 	 * 
 	 * @param model
 	 *            The up-to-date model.
-	 * @return Future wrapping the update step calculation.
 	 */
-	private Future<UpdateModel> prepareModelUpdate(final Model model) {
+	private void prepareModelUpdateAndRespond(final Model model, final ActorRef target) {
+		// Get the next training sample from the data set.
 		final Future<Object> trainingSampleFuture = Patterns.ask(dataFetcher, FetchNext.instance(), timeout);
-		return trainingSampleFuture.map(new Mapper<Object, UpdateModel>() {
+		
+		// Calculate the model update.
+		Future<UpdateModel> future = trainingSampleFuture.map(new Mapper<Object, UpdateModel>() {
 
 			@Override
 			public UpdateModel apply(final Object trainingSampeObj) {
+				if (trainingSampeObj instanceof EmptyDataSet) {
+					throw new RuntimeException("Empty data set");
+				}
+				
 				final TrainingSample sample = (TrainingSample) trainingSampeObj;
-				return calculateModelUpdate(sample, model);
+				return calculateModelUpdate(sample, model); 
 			}
 
 		}, getContext().dispatcher());
+		
+		// If the data retreival and calculation succeeded, respond to the sender with an update model request.
+		future.onSuccess(new OnSuccess<UpdateModel>() {
+
+			@Override
+			public void onSuccess(UpdateModel updateModel) throws Throwable {
+				target.tell(updateModel, getSelf());
+				
+			}
+		}, getContext().dispatcher());
+		
 	}
 
 	/**

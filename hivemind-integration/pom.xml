@@ -8,4 +8,24 @@
       <artifactId>hivemind-parent</artifactId>
       <version>0.0.1-SNAPSHOT</version>
   </parent>
+  
+   <dependencies>
+       <dependency>
+	      	<groupId>${groupId}</groupId>
+	  		<artifactId>hivemind-drone</artifactId>
+	  		<version>${version}</version>
+       </dependency>
+      	
+       <dependency>
+	      	<groupId>${groupId}</groupId>
+	  		<artifactId>hivemind-queen</artifactId>
+	  		<version>${version}</version>
+       </dependency>
+      	
+       <dependency>
+	      	<groupId>${groupId}</groupId>
+	  		<artifactId>hivemind-api</artifactId>
+	  		<version>${version}</version>
+       </dependency>
+   </dependencies>
 </project>

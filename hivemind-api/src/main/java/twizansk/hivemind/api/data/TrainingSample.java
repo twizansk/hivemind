@@ -1,6 +1,6 @@
 package twizansk.hivemind.api.data;
 
-public final class TrainingSample {
+public class TrainingSample {
 	public final double[] x;
 	public final double y;
 	
