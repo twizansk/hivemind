@@ -13,6 +13,7 @@ import twizansk.hivemind.drone.data.DataFetcher;
 import twizansk.hivemind.messages.drone.FetchNext;
 import twizansk.hivemind.messages.drone.GetModel;
 import twizansk.hivemind.messages.drone.UpdateModel;
+import twizansk.hivemind.messages.external.Reset;
 import twizansk.hivemind.messages.external.Start;
 import twizansk.hivemind.messages.external.Stop;
 import twizansk.hivemind.messages.queen.Model;
@@ -68,6 +69,8 @@ public final class Drone extends UntypedActor {
 			this.queen.tell(GetModel.instance(), getSelf());
 		} else if (msg instanceof Stop) {
 			this.state = State.IDLE;
+		} else if (msg instanceof Reset) {
+			this.dataFetcher.tell(Reset.instance(), getSelf());
 		}
 
 		// If we are waiting for the first communication from the queen, and we

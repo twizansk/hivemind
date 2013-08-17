@@ -71,6 +71,10 @@ public class DroneTest {
 			this.gotSample = true;
 			return new TrainingSample(new double[0], 0.0);
 		}
+		
+		@Override
+		public void reset() {	
+		}
 
 	}
 

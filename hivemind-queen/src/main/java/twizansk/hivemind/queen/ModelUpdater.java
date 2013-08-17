@@ -11,7 +11,7 @@ import twizansk.hivemind.messages.queen.Model;
  */
 public class ModelUpdater {
 	
-	public void update(UpdateModel updateModel, Model model) {
+	public void update(UpdateModel updateModel, Model model, long t) {
 		// TODO: need to implement
 	}
 	

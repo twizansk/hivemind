@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import scala.concurrent.Await;
@@ -13,6 +14,7 @@ import scala.concurrent.duration.Duration;
 import twizansk.hivemind.common.ActorLookup;
 import twizansk.hivemind.messages.drone.GetModel;
 import twizansk.hivemind.messages.drone.UpdateModel;
+import twizansk.hivemind.messages.external.Reset;
 import twizansk.hivemind.messages.external.Start;
 import twizansk.hivemind.messages.external.Stop;
 import twizansk.hivemind.messages.queen.NotReady;
@@ -45,6 +47,13 @@ public class HiveMindIntegrationTest {
 		lookup = system.actorOf(ActorLookup.makeProps(dronePath));
 		f = Patterns.ask(lookup, ActorLookup.GET_ACTOR_REF, Timeout.longToTimeout(100000));
 		drone = (ActorRef) Await.result(f, Duration.Inf());
+	}
+	
+	@BeforeMethod
+	public void stopActors() {
+		drone.tell(Stop.instance(), null);
+ 		queen.tell(Stop.instance(), null);
+ 		drone.tell(Reset.instance(), null);
 	}
 	
 	/**
@@ -82,11 +91,18 @@ public class HiveMindIntegrationTest {
 	public void startupAndUpdate() throws Exception {
 		queen.tell(Start.instance(), null);
 		drone.tell(Start.instance(), null);
-		Thread.sleep(5000);
+		Thread.sleep(500000);
 		Future<Object> f = Patterns.ask(queen, GetModel.instance(), 1000);
 		Object model = Await.result(f, Duration.create(1, TimeUnit.SECONDS));
-		System.out.println(Arrays.toString(((IntegrationModel) model).params));
  		Assert.assertTrue(Arrays.equals(((IntegrationModel) model).params, new double[] {13, 13, 13}));
+ 		
+ 		// restart the queen.  check that the model is reset.
+ 		drone.tell(Stop.instance(), null);
+ 		queen.tell(Stop.instance(), null);
+ 		queen.tell(Start.instance(), null);
+ 		f = Patterns.ask(queen, GetModel.instance(), 1000);
+		model = Await.result(f, Duration.create(1, TimeUnit.SECONDS));
+ 		Assert.assertTrue(Arrays.equals(((IntegrationModel) model).params, new double[] {0, 0, 0}));
 	}
 	
 }

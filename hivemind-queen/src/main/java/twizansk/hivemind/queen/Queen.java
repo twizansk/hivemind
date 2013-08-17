@@ -1,5 +1,6 @@
 package twizansk.hivemind.queen;
 
+import twizansk.hivemind.api.objective.IModelFactory;
 import twizansk.hivemind.messages.drone.GetModel;
 import twizansk.hivemind.messages.drone.UpdateModel;
 import twizansk.hivemind.messages.external.Start;
@@ -17,18 +18,20 @@ public class Queen extends UntypedActor {
 		IDLE, ACTIVE
 	}
 
-	private final Model model;
+	private final IModelFactory modelFactory;
 	private final ModelUpdater modelUpdater;
 	private volatile State state = State.IDLE;
+	private volatile long t = 1;
+	private volatile Model model;
 
-	public Queen(Model model, ModelUpdater modelUpdater) {
+	public Queen(IModelFactory modelFactory, ModelUpdater modelUpdater) {
 		super();
-		this.model = model;
+		this.modelFactory = modelFactory;
 		this.modelUpdater = modelUpdater;
 	}
 
-	public static Props makeProps(Model model, ModelUpdater modelUpdater) {
-		return Props.create(Queen.class, model, modelUpdater);
+	public static Props makeProps(IModelFactory modelFactory, ModelUpdater modelUpdater) {
+		return Props.create(Queen.class, modelFactory, modelUpdater);
 	}
 
 	@Override
@@ -36,15 +39,17 @@ public class Queen extends UntypedActor {
 		// These are the state change messages.  a Start message results in a state of ACTIVE and a Stop message 
 		// results in a state of IDLE.  Note that all state changes are idempotent.
 		if (msg instanceof Start) {
-			state = State.ACTIVE;
+			this.state = State.ACTIVE;
+			this.t = 1;
+			this.model = modelFactory.createModel();
 			getSender().tell(Ready.instance(), getSelf());
 		} else if (msg instanceof Stop) {
-			state = State.IDLE;
+			this.state = State.IDLE;
 			getSender().tell(new NotReady(msg), getSelf());
 		}
 		
 		// All other messages are only allowed if the state is ACTIVE
-		else if (state.equals(State.IDLE)) {
+		else if (this.state.equals(State.IDLE)) {
 			getSender().tell(new NotReady(msg), getSelf());
 		}
 		
@@ -53,8 +58,8 @@ public class Queen extends UntypedActor {
 			getSender().tell(model, getSelf());
 		}
 		else if (msg instanceof UpdateModel) {
-			modelUpdater.update(((UpdateModel) msg), model);
-			getSender().tell(new UpdateDone(model), getSelf());
+			this.modelUpdater.update(((UpdateModel) msg), this.model, this.t++);
+			getSender().tell(new UpdateDone(this.model), getSelf());
 		} else {
 			unhandled(msg);
 		}

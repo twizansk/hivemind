@@ -1,14 +1,18 @@
 package twizansk.hivemind.common;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import scala.concurrent.duration.Duration;
+import twizansk.hivemind.messages.queen.NotReady;
 import akka.actor.ActorIdentity;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Identify;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.Futures;
+import akka.pattern.Patterns;
 
 /**
  * The role of the {@link ActorLookup} actor is to lookup and identify a remote
@@ -36,7 +40,13 @@ public class ActorLookup extends UntypedActor {
 	@Override
 	public void onReceive(Object msg) throws Exception {
 		// Recieve the identity of the actor.
-		if (msg instanceof ActorIdentity && ((ActorIdentity) msg).getRef().path().toString().equals(path)) {
+		if (msg instanceof ActorIdentity && ((ActorIdentity) msg).getRef() == null) {
+			// If we received an empty identity, the queen was not found.  Try again in 1 second.
+			Thread.sleep(1000);
+			ActorSelection queenSelection = getContext().system().actorSelection(path);
+			queenSelection.tell(new Identify(path), getSelf());
+		} else if (msg instanceof ActorIdentity && ((ActorIdentity) msg).getRef().path().toString().equals(path)) {
+			// The queen was found.
 			this.ref = ((ActorIdentity) msg).getRef();
 		} 
 		

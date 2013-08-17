@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+import twizansk.hivemind.api.objective.IModelFactory;
 import twizansk.hivemind.drone.Drone;
 import twizansk.hivemind.messages.drone.UpdateModel;
 import twizansk.hivemind.messages.external.Start;
@@ -29,8 +30,8 @@ public class QueenTest {
 		private boolean updated = false;
 
 		@Override
-		public void update(UpdateModel updateModel, Model model) {
-			super.update(updateModel, model);
+		public void update(UpdateModel updateModel, Model model, long t) {
+			super.update(updateModel, model, t);
 			this.updated = true;
 		}
 	}
@@ -46,7 +47,11 @@ public class QueenTest {
 	public void startStop() throws Exception {
 		ActorSystem system = ActorSystem.create("QueenSystem");
 		try {
-			Props props = Queen.makeProps(new Model(), null);
+			Props props = Queen.makeProps(new IModelFactory() {
+				public Model createModel() {
+					return new Model();
+				}
+			}, null);
 			TestActorRef<Queen> ref = TestActorRef.create(system, props, "testQueen");
 			Await.result(Patterns.ask(ref, Start.instance(), 3000), Duration.create(1, TimeUnit.SECONDS));
 			Queen queen = ref.underlyingActor();
@@ -62,7 +67,11 @@ public class QueenTest {
 		ActorSystem system = ActorSystem.create("QueenSystem");
 		try {
 			MockModelUpdater modelUpdater = new MockModelUpdater();
-			Props props = Queen.makeProps(new Model(), modelUpdater);
+			Props props = Queen.makeProps(new IModelFactory() {
+				public Model createModel() {
+					return new Model();
+				}
+			}, modelUpdater);
 			TestActorRef<Queen> ref = TestActorRef.create(system, props, "testQueen");
 			Await.result(Patterns.ask(ref, Start.instance(), 3000), Duration.create(1, TimeUnit.SECONDS));
 			Future<Object> future = Patterns.ask(ref, new UpdateModel(null), 3000);
@@ -80,7 +89,11 @@ public class QueenTest {
 		ActorSystem system = ActorSystem.create("QueenSystem");
 		try {
 			MockModelUpdater modelUpdater = new MockModelUpdater();
-			Props props = Queen.makeProps(new Model(), modelUpdater);
+			Props props = Queen.makeProps(new IModelFactory() {
+				public Model createModel() {
+					return new Model();
+				}
+			}, modelUpdater);
 			TestActorRef<Drone> ref = TestActorRef.create(system, props, "testQueen");
 			Future<Object> future = Patterns.ask(ref, new UpdateModel(null), 3000);
 			NotReady notReady = (NotReady) Await.result(future, Duration.create(1000, "seconds"));

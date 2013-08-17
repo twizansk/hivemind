@@ -3,6 +3,7 @@ package twizansk.hivemind.drone.data;
 import twizansk.hivemind.api.data.ITrainingSet;
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.messages.drone.FetchNext;
+import twizansk.hivemind.messages.external.Reset;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 
@@ -23,6 +24,8 @@ public class DataFetcher extends UntypedActor {
 		if (msg instanceof FetchNext) {
 			TrainingSample sample = trainingSet.getNext();
 			getSender().tell(sample, getSelf());
+		} else if (msg instanceof Reset) {
+			this.trainingSet.reset();
 		} else {
 			unhandled(msg);
 		}
