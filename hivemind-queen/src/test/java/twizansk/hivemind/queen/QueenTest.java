@@ -1,33 +1,37 @@
 package twizansk.hivemind.queen;
 
 import java.lang.reflect.Field;
-import java.util.concurrent.TimeUnit;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import scala.concurrent.Await;
-import scala.concurrent.Future;
-import scala.concurrent.duration.Duration;
 import twizansk.hivemind.api.objective.ModelFactory;
 import twizansk.hivemind.common.Model;
-import twizansk.hivemind.drone.Drone;
+import twizansk.hivemind.common.StateMachine;
+import twizansk.hivemind.messages.drone.MsgGetModel;
 import twizansk.hivemind.messages.drone.MsgUpdateModel;
 import twizansk.hivemind.messages.external.MsgConnectAndStart;
+import twizansk.hivemind.messages.external.MsgStop;
+import twizansk.hivemind.messages.queen.MsgModel;
 import twizansk.hivemind.messages.queen.MsgNotReady;
 import twizansk.hivemind.messages.queen.MsgUpdateDone;
 import twizansk.hivemind.queen.Queen.State;
+import twizansk.hivemind.test.Initializer;
+import twizansk.hivemind.test.MockActor;
+import twizansk.hivemind.test.Validatable;
+import twizansk.hivemind.test.Validator;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.pattern.Patterns;
+import akka.actor.UntypedActor;
 import akka.testkit.TestActorRef;
 
 @Test(singleThreaded=true)
 public class QueenTest {
 
 	class MockModelUpdater extends ModelUpdater {
-		private boolean updated = false;
+		boolean updated = false;
 
 		@Override
 		public void update(MsgUpdateModel updateModel, Model model, long t) {
@@ -40,70 +44,147 @@ public class QueenTest {
 		private static final long serialVersionUID = 1L;
 	}
 
+	private class QueenValidatable implements Validatable {
+		final Queen queen;
+		final TestActorRef<MockActor> sender;
+		final MockModelUpdater modelUpdater;
+
+		public QueenValidatable(Queen queen, TestActorRef<MockActor> sender, MockModelUpdater modelUpdater) {
+			super();
+			this.queen = queen;
+			this.sender = sender;
+			this.modelUpdater = modelUpdater;
+		}
+	}
+	
 	private static Field stateField;
+	private static Field tField;
+	private static Field modelField;
 	
 	@BeforeClass
 	public void init() throws NoSuchFieldException, SecurityException {
-		 stateField = Queen.class.getDeclaredField("state");
-		 stateField.setAccessible(true);
+		stateField = StateMachine.class.getDeclaredField("state");
+		tField = Queen.class.getDeclaredField("t");
+		modelField = Queen.class.getDeclaredField("model");
+		stateField.setAccessible(true);
+		tField.setAccessible(true);
+		modelField.setAccessible(true);
 	}
 	
-	public void startStop() throws Exception {
-		ActorSystem system = ActorSystem.create("QueenSystem");
+	@Test(dataProvider="forStateTransition")
+	public void stateTransition(
+			Object initialState, 
+			Object finalState, 
+			Object message, 
+			TestActorRef<MockActor> sender,
+			Initializer initializer, 
+			Validator<QueenValidatable> validator) throws Exception {
+		
+		
+		ActorSystem system = ActorSystem.create("DroneSystem");
 		try {
+			MockModelUpdater modelUpdater = new MockModelUpdater();
 			Props props = Queen.makeProps(new ModelFactory() {
 				public Model createModel() {
 					return new MockModel();
 				}
-			}, null);
+			}, modelUpdater);
 			TestActorRef<Queen> ref = TestActorRef.create(system, props, "testQueen");
-			Await.result(Patterns.ask(ref, MsgConnectAndStart.instance(), 3000), Duration.create(1, TimeUnit.SECONDS));
 			Queen queen = ref.underlyingActor();
-			State state = (State) stateField.get(queen);
-			Assert.assertEquals(state, State.ACTIVE);
+			initializer.init(queen);
+			stateField.set(queen, initialState);
+			ref.tell(message, sender == null ? system.deadLetters() : sender);
+			Thread.sleep(500);
+			Assert.assertEquals(stateField.get(queen), finalState);
+			validator.validate(new QueenValidatable(queen, sender, modelUpdater));
 		} finally {
 			system.shutdown();
 		}
 	}
-	
-	@Test
-	public void updateModel() throws Exception {
-		ActorSystem system = ActorSystem.create("QueenSystem");
-		try {
-			MockModelUpdater modelUpdater = new MockModelUpdater();
-			Props props = Queen.makeProps(new ModelFactory() {
-				public Model createModel() {
-					return new MockModel();
+
+	@DataProvider(name="forStateTransition")
+	public Object[][] forStateTransition() throws Exception {		
+		return new Object[][] {
+			{
+				State.IDLE, 
+				State.ACTIVE, 
+				MsgConnectAndStart.instance(),
+				null,
+				new Initializer() {
+					public void init(UntypedActor actor) throws Exception {
+						tField.set(actor, 0);
+						modelField.set(actor, null);
+					}
+				},
+				new Validator<QueenValidatable>() {
+					public void validate(QueenValidatable validatable) {
+						try {
+							Assert.assertEquals(tField.get(validatable.queen), 1L);
+							Assert.assertNotNull(modelField.get(validatable.queen));
+						} catch (Exception e) {
+							throw new RuntimeException(e);
+						}
+					}
 				}
-			}, modelUpdater);
-			TestActorRef<Queen> ref = TestActorRef.create(system, props, "testQueen");
-			Await.result(Patterns.ask(ref, MsgConnectAndStart.instance(), 3000), Duration.create(1, TimeUnit.SECONDS));
-			Future<Object> future = Patterns.ask(ref, new MsgUpdateModel(null), 3000);
-			MsgUpdateDone updateDone = (MsgUpdateDone) Await.result(future, Duration.create(1000, "seconds"));
-			Assert.assertNotNull(updateDone);
-			Assert.assertTrue(future.isCompleted());
-			Assert.assertTrue(modelUpdater.updated);
-		} finally {
-			system.shutdown();
-		}
-	}
-	
-	@Test
-	public void updateModelNotReady() throws Exception {
-		ActorSystem system = ActorSystem.create("QueenSystem");
-		try {
-			MockModelUpdater modelUpdater = new MockModelUpdater();
-			Props props = Queen.makeProps(new ModelFactory() {
-				public Model createModel() {
-					return new MockModel();
+			},
+			{
+				State.ACTIVE, 
+				State.IDLE, 
+				MsgStop.instance(),
+				TestActorRef.create(ActorSystem.create("DroneSystem"), MockActor.makeProps(), "testDrone"),
+				new Initializer() {
+					public void init(UntypedActor actor) throws Exception {
+					}
+				},
+				new Validator<QueenValidatable>() {
+					public void validate(QueenValidatable validatable) {
+						try {
+							Assert.assertTrue(validatable.sender.underlyingActor().getLastMessage() instanceof MsgNotReady);
+						} catch (Exception e) {
+							throw new RuntimeException(e);
+						}
+					}
 				}
-			}, modelUpdater);
-			TestActorRef<Drone> ref = TestActorRef.create(system, props, "testQueen");
-			Future<Object> future = Patterns.ask(ref, new MsgUpdateModel(null), 3000);
-			MsgNotReady notReady = (MsgNotReady) Await.result(future, Duration.create(1000, "seconds"));
-			Assert.assertNotNull(notReady);
-		} finally {
-			system.shutdown();
-		}
+			},
+			{
+				State.ACTIVE, 
+				State.ACTIVE, 
+				MsgGetModel.instance(),
+				TestActorRef.create(ActorSystem.create("DroneSystem"), MockActor.makeProps(), "testDrone"),
+				new Initializer() {
+					public void init(UntypedActor actor) throws Exception {
+					}
+				},
+				new Validator<QueenValidatable>() {
+					public void validate(QueenValidatable validatable) {
+						try {
+							Assert.assertTrue(validatable.sender.underlyingActor().getLastMessage() instanceof MsgModel);
+						} catch (Exception e) {
+							throw new RuntimeException(e);
+						}
+					}
+				}
+			},
+			{
+				State.ACTIVE, 
+				State.ACTIVE, 
+				new MsgUpdateModel(new double[5]),
+				TestActorRef.create(ActorSystem.create("DroneSystem"), MockActor.makeProps(), "testDrone"),
+				new Initializer() {
+					public void init(UntypedActor actor) throws Exception {
+					}
+				},
+				new Validator<QueenValidatable>() {
+					public void validate(QueenValidatable validatable) {
+						try {
+							Assert.assertTrue(validatable.sender.underlyingActor().getLastMessage() instanceof MsgUpdateDone);
+							Assert.assertTrue(validatable.modelUpdater.updated);
+						} catch (Exception e) {
+							throw new RuntimeException(e);
+						}
+					}
+				}
+			}
+		};
 	}
 }
