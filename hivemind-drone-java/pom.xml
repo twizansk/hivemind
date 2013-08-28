@@ -20,6 +20,14 @@
 	  		<artifactId>hivemind-common</artifactId>
 	  		<version>${version}</version>
       	</dependency>
+      	
+      	<dependency>
+	      	<groupId>${groupId}</groupId>
+	  		<artifactId>hivemind-test</artifactId>
+	  		<version>${version}</version>
+	  		<scope>test</scope>
+      	</dependency>
+      	
   </dependencies>
   
 </project>

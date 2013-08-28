@@ -1,6 +1,6 @@
 package twizansk.hivemind.api.objective;
 
-import twizansk.hivemind.messages.queen.Model;
+import twizansk.hivemind.common.Model;
 
 /**
  * Interface for factory classes that create model objects.
@@ -8,6 +8,6 @@ import twizansk.hivemind.messages.queen.Model;
  * @author Tommer Wizansky
  *
  */
-public interface IModelFactory {
+public interface ModelFactory {
 	Model createModel();
 }

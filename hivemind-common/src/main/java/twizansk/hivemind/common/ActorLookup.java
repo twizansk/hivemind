@@ -1,74 +1,48 @@
 package twizansk.hivemind.common;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-
-import scala.concurrent.duration.Duration;
-import twizansk.hivemind.messages.queen.NotReady;
+import akka.actor.ActorContext;
 import akka.actor.ActorIdentity;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Identify;
-import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.dispatch.Futures;
-import akka.pattern.Patterns;
 
 /**
- * The role of the {@link ActorLookup} actor is to lookup and identify a remote
- * actor and return the corresponding {@link ActorRef} instance.
+ * {@link ActorLookup} is responsible for encapsulating a remote actor address
+ * and posting identification requests on behalf of a client actor
  * 
  * @author Tommer Wizansky
  * 
  */
-public class ActorLookup extends UntypedActor {
-
+public class ActorLookup {
+	
 	private final String path;
-	public static final String GET_ACTOR_REF = "get-actor-ref";
-	private volatile ActorRef ref;
+	private final ActorContext context;
+	private final ActorRef clientActor;
 	
-	public ActorLookup(String path) {
-		this.path = path;
-		ActorSelection queenSelection = getContext().system().actorSelection(path);
-		queenSelection.tell(new Identify(path), getSelf());
-	}
-
-	public static Props makeProps(String queenPath) {
-		return Props.create(ActorLookup.class, queenPath);
+	public ActorLookup(String address, ActorContext context, ActorRef clientActor) {
+		super();
+		this.path = address;
+		this.context = context;
+		this.clientActor = clientActor;
 	}
 	
-	@Override
-	public void onReceive(Object msg) throws Exception {
-		// Recieve the identity of the actor.
-		if (msg instanceof ActorIdentity && ((ActorIdentity) msg).getRef() == null) {
-			// If we received an empty identity, the queen was not found.  Try again in 1 second.
-			Thread.sleep(1000);
-			ActorSelection queenSelection = getContext().system().actorSelection(path);
-			queenSelection.tell(new Identify(path), getSelf());
-		} else if (msg instanceof ActorIdentity && ((ActorIdentity) msg).getRef().path().toString().equals(path)) {
-			// The queen was found.
-			this.ref = ((ActorIdentity) msg).getRef();
-		} 
-		
-		// The reference to the actor was requested.
-		else if (msg.equals(GET_ACTOR_REF)) {
-			// If we haven't received it yet, requeue the request.
-			if (ref == null) {
-				getContext().system().scheduler().scheduleOnce(
-						Duration.create(1, TimeUnit.SECONDS),
-						getSelf(), 
-						GET_ACTOR_REF, 
-						getContext().system().dispatcher(), getSender());
-			} 
-			
-			// Otherwise, send the reference to the requester.
-			else {
-				getSender().tell(ref, getSelf());
-			}
-		} else {
-			unhandled(msg);
-		}
-
+	/**
+	 * Send an asynchronous identification request to the target.  Route the response back to the client actor.
+	 */
+	public void sendLookup() {
+		ActorSelection queenSelection =  this.context.system().actorSelection(path);
+		queenSelection.tell(new Identify(path), clientActor);
 	}
-
+	
+	/**
+	 * Check whether a given identity represents the lookup's target actor.
+	 * 
+	 * @param identity
+	 * @return
+	 * 		True if target. False otherwise.
+	 */
+	public boolean isTarget(ActorIdentity identity) {
+		return identity.getRef() != null && identity.getRef().path().toString().equals(this.path);
+	}
+	
 }

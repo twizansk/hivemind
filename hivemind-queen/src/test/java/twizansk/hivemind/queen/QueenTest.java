@@ -10,13 +10,13 @@ import org.testng.annotations.Test;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
-import twizansk.hivemind.api.objective.IModelFactory;
+import twizansk.hivemind.api.objective.ModelFactory;
+import twizansk.hivemind.common.Model;
 import twizansk.hivemind.drone.Drone;
-import twizansk.hivemind.messages.drone.UpdateModel;
-import twizansk.hivemind.messages.external.Start;
-import twizansk.hivemind.messages.queen.Model;
-import twizansk.hivemind.messages.queen.NotReady;
-import twizansk.hivemind.messages.queen.UpdateDone;
+import twizansk.hivemind.messages.drone.MsgUpdateModel;
+import twizansk.hivemind.messages.external.MsgConnectAndStart;
+import twizansk.hivemind.messages.queen.MsgNotReady;
+import twizansk.hivemind.messages.queen.MsgUpdateDone;
 import twizansk.hivemind.queen.Queen.State;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -30,10 +30,14 @@ public class QueenTest {
 		private boolean updated = false;
 
 		@Override
-		public void update(UpdateModel updateModel, Model model, long t) {
+		public void update(MsgUpdateModel updateModel, Model model, long t) {
 			super.update(updateModel, model, t);
 			this.updated = true;
 		}
+	}
+	
+	class MockModel implements Model {
+		private static final long serialVersionUID = 1L;
 	}
 
 	private static Field stateField;
@@ -47,13 +51,13 @@ public class QueenTest {
 	public void startStop() throws Exception {
 		ActorSystem system = ActorSystem.create("QueenSystem");
 		try {
-			Props props = Queen.makeProps(new IModelFactory() {
+			Props props = Queen.makeProps(new ModelFactory() {
 				public Model createModel() {
-					return new Model();
+					return new MockModel();
 				}
 			}, null);
 			TestActorRef<Queen> ref = TestActorRef.create(system, props, "testQueen");
-			Await.result(Patterns.ask(ref, Start.instance(), 3000), Duration.create(1, TimeUnit.SECONDS));
+			Await.result(Patterns.ask(ref, MsgConnectAndStart.instance(), 3000), Duration.create(1, TimeUnit.SECONDS));
 			Queen queen = ref.underlyingActor();
 			State state = (State) stateField.get(queen);
 			Assert.assertEquals(state, State.ACTIVE);
@@ -67,15 +71,15 @@ public class QueenTest {
 		ActorSystem system = ActorSystem.create("QueenSystem");
 		try {
 			MockModelUpdater modelUpdater = new MockModelUpdater();
-			Props props = Queen.makeProps(new IModelFactory() {
+			Props props = Queen.makeProps(new ModelFactory() {
 				public Model createModel() {
-					return new Model();
+					return new MockModel();
 				}
 			}, modelUpdater);
 			TestActorRef<Queen> ref = TestActorRef.create(system, props, "testQueen");
-			Await.result(Patterns.ask(ref, Start.instance(), 3000), Duration.create(1, TimeUnit.SECONDS));
-			Future<Object> future = Patterns.ask(ref, new UpdateModel(null), 3000);
-			UpdateDone updateDone = (UpdateDone) Await.result(future, Duration.create(1000, "seconds"));
+			Await.result(Patterns.ask(ref, MsgConnectAndStart.instance(), 3000), Duration.create(1, TimeUnit.SECONDS));
+			Future<Object> future = Patterns.ask(ref, new MsgUpdateModel(null), 3000);
+			MsgUpdateDone updateDone = (MsgUpdateDone) Await.result(future, Duration.create(1000, "seconds"));
 			Assert.assertNotNull(updateDone);
 			Assert.assertTrue(future.isCompleted());
 			Assert.assertTrue(modelUpdater.updated);
@@ -89,14 +93,14 @@ public class QueenTest {
 		ActorSystem system = ActorSystem.create("QueenSystem");
 		try {
 			MockModelUpdater modelUpdater = new MockModelUpdater();
-			Props props = Queen.makeProps(new IModelFactory() {
+			Props props = Queen.makeProps(new ModelFactory() {
 				public Model createModel() {
-					return new Model();
+					return new MockModel();
 				}
 			}, modelUpdater);
 			TestActorRef<Drone> ref = TestActorRef.create(system, props, "testQueen");
-			Future<Object> future = Patterns.ask(ref, new UpdateModel(null), 3000);
-			NotReady notReady = (NotReady) Await.result(future, Duration.create(1000, "seconds"));
+			Future<Object> future = Patterns.ask(ref, new MsgUpdateModel(null), 3000);
+			MsgNotReady notReady = (MsgNotReady) Await.result(future, Duration.create(1000, "seconds"));
 			Assert.assertNotNull(notReady);
 		} finally {
 			system.shutdown();

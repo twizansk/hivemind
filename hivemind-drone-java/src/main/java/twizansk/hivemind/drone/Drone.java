@@ -5,23 +5,28 @@ import java.util.concurrent.TimeUnit;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import twizansk.hivemind.api.data.EmptyDataSet;
-import twizansk.hivemind.api.data.ITrainingSet;
+import twizansk.hivemind.api.data.TrainingSet;
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.api.objective.Gradient;
 import twizansk.hivemind.api.objective.IObjectiveFunction;
+import twizansk.hivemind.common.ActorLookup;
+import twizansk.hivemind.common.ActorLookupFactory;
+import twizansk.hivemind.common.Model;
+import twizansk.hivemind.common.StateMachine;
 import twizansk.hivemind.drone.data.DataFetcher;
-import twizansk.hivemind.messages.drone.FetchNext;
-import twizansk.hivemind.messages.drone.GetModel;
-import twizansk.hivemind.messages.drone.UpdateModel;
-import twizansk.hivemind.messages.external.Reset;
-import twizansk.hivemind.messages.external.Start;
-import twizansk.hivemind.messages.external.Stop;
-import twizansk.hivemind.messages.queen.Model;
-import twizansk.hivemind.messages.queen.NotReady;
-import twizansk.hivemind.messages.queen.UpdateDone;
+import twizansk.hivemind.messages.drone.MsgFetchNext;
+import twizansk.hivemind.messages.drone.MsgGetModel;
+import twizansk.hivemind.messages.drone.MsgStart;
+import twizansk.hivemind.messages.drone.MsgUpdateModel;
+import twizansk.hivemind.messages.external.MsgConnectAndStart;
+import twizansk.hivemind.messages.external.MsgReset;
+import twizansk.hivemind.messages.external.MsgStop;
+import twizansk.hivemind.messages.queen.MsgModel;
+import twizansk.hivemind.messages.queen.MsgUpdateDone;
+import akka.actor.ActorIdentity;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
+import akka.actor.Terminated;
 import akka.dispatch.Mapper;
 import akka.dispatch.OnSuccess;
 import akka.pattern.Patterns;
@@ -37,90 +42,150 @@ import akka.util.Timeout;
  * @author Tommer Wizansky
  * 
  */
-public final class Drone extends UntypedActor {
+public final class Drone extends StateMachine {
 
 	enum State {
-		IDLE, ACTIVE, WAITING_FOR_QUEEN
+		DISCONNECTED, CONNECTING, IDLE, STARTING, ACTIVE
 	}
 
+	private final static Timeout timeout = new Timeout(Duration.create(5, "seconds"));
 	private final IObjectiveFunction objectiveFunction;
 	private final ActorRef dataFetcher;
-	private final ActorRef queen;
-	private final static Timeout timeout = new Timeout(Duration.create(5, "seconds"));
-	private State state = State.IDLE;
+	private final ActorLookup queenLookup;
+	
+	private ActorRef queen;
 
-	public Drone(IObjectiveFunction objectiveFunction, ITrainingSet trainingSet, ActorRef queen) {
-		this.objectiveFunction = objectiveFunction;
-		this.queen = queen;
+	
+	//////////////////////////////////////////////
+	// Actions
+	/////////////////////////////////////////////
+	
+	private final Action<Drone> CONNECT = new Action<Drone>() {
 
-		// Create supervised actors.
-		this.dataFetcher = this.getContext().actorOf(DataFetcher.makeProps(trainingSet));
-	}
-
-	public static Props makeProps(IObjectiveFunction objectiveFunction, ITrainingSet trainingSet, ActorRef queen) {
-		return Props.create(Drone.class, objectiveFunction, trainingSet, queen);
-	}
-
-	@Override
-	public void onReceive(Object msg) {
-		// Start the training.  Ask for the current model from the queen.
-		if (msg instanceof Start) {
-			this.state = State.WAITING_FOR_QUEEN;
-			this.queen.tell(GetModel.instance(), getSelf());
-		} else if (msg instanceof Stop) {
-			this.state = State.IDLE;
-		} else if (msg instanceof Reset) {
-			this.dataFetcher.tell(Reset.instance(), getSelf());
-		}
-
-		// If we are waiting for the first communication from the queen, and we
-		// got it, change the state to ACTIVE and start processing.
-		else if (msg instanceof Model && state.equals(State.WAITING_FOR_QUEEN)) {
-			this.state = State.ACTIVE;
-			this.prepareModelUpdateAndRespond(((Model) msg), getSender());
-		}
-
-		// Any other messages should only be handled when the drone is active.
-		else if (!state.equals(State.ACTIVE)) {
-			unhandled(msg);
-		}
-		
-		// If the queen is not ready yet, reschedule the message.
-		else if (msg instanceof NotReady) {
+		@Override
+		public void apply(Drone actor, Object message) {
+			actor.queenLookup.sendLookup();
 			getContext().system().scheduler().scheduleOnce(
 					Duration.create(1, TimeUnit.SECONDS),
-					getSender(), 
-					((NotReady) msg).message, 
+					getSelf(), 
+					MsgConnectAndStart.instance(), 
+					getContext().dispatcher(), 
+					getSelf());
+			
+		}
+		
+	};  
+	
+	private final Action<Drone> INIT_QUEEN = new Action<Drone>() {
+
+		@Override
+		public void apply(Drone actor, Object message) {
+			if (actor.queenLookup.isTarget((ActorIdentity) message)) {
+				actor.queen = ((ActorIdentity) message).getRef();
+				actor.getContext().watch(queen);
+				actor.getSelf().tell(MsgStart.instance(), getSender());
+			}
+		}
+		
+	};  
+	
+	private final Action<Drone> GET_INITIAL_MODEL = new Action<Drone>() {
+
+		@Override
+		public void apply(Drone actor, Object message) {
+			actor.queen.tell(MsgGetModel.instance(), getSelf());
+			getContext().system().scheduler().scheduleOnce(
+					Duration.create(1, TimeUnit.SECONDS),
+					getSelf(), 
+					MsgStart.instance(), 
 					getContext().dispatcher(), 
 					getSelf());
 		}
 		
-		// An UpdateDone message implies that the queen has completed an update
-		// to the model and that the next update can be calculated. The
-		// UpdateModel object contains the updated model which can now be used
-		// by the drone to calculate the next update step.
-		else if (msg instanceof UpdateDone) {
-			this.prepareModelUpdateAndRespond(((UpdateDone) msg).currentModel, getSender());
-		} else {
-			unhandled(msg);
+	};  
+	
+	private final Action<Drone> START_TRAINING = new Action<Drone>() {
+
+		@Override
+		public void apply(Drone actor, Object message) {
+			actor.prepareModelUpdateAndRespond(((MsgModel) message).model, actor.getSender());
 		}
+		
+	};  
+	
+	private final Action<Drone> NEXT_UPDATE = new Action<Drone>() {
+
+		@Override
+		public void apply(Drone actor, Object message) {
+			actor.prepareModelUpdateAndRespond(((MsgUpdateDone) message).currentModel, actor.getSender());
+		}
+		
+	};  
+	
+	private final Action<Drone> RESET_DATASET = new Action<Drone>() {
+
+		@Override
+		public void apply(Drone actor, Object message) {
+			actor.dataFetcher.tell(MsgReset.instance(), getSelf());
+		}
+		
+	};  
+	
+	//////////////////////////////////////////////////////
+	// Conditions on transitions
+	/////////////////////////////////////////////////////
+	
+	private final Condition<Drone> IS_QUEEN_IDENTITY = new Condition<Drone>() {
+
+		@Override
+		public boolean isSatisfied(Drone actor, Object message) {
+			return actor.queenLookup.isTarget((ActorIdentity) message);
+		}
+		
+	};
+	
+	
+	public Drone(IObjectiveFunction objectiveFunction, TrainingSet trainingSet, ActorLookupFactory actorLookupFactory) {
+		this.objectiveFunction = objectiveFunction;
+		this.queenLookup = actorLookupFactory.create(this.getContext(), this.getSelf());
+		this.state = State.DISCONNECTED;
+
+		// Create supervised actors.
+		this.dataFetcher = this.getContext().actorOf(DataFetcher.makeProps(trainingSet));
+		
+		// Define the state machine
+		this.addTransition(State.DISCONNECTED, MsgConnectAndStart.class, new Transition<>(State.CONNECTING, CONNECT));
+		this.addTransition(State.CONNECTING, MsgConnectAndStart.class, new Transition<>(State.CONNECTING, CONNECT));
+		this.addTransition(State.CONNECTING, ActorIdentity.class, new Transition<>(State.IDLE, INIT_QUEEN, IS_QUEEN_IDENTITY));
+		this.addTransition(State.IDLE, MsgStart.class, new Transition<>(State.STARTING, GET_INITIAL_MODEL));
+		this.addTransition(State.IDLE, MsgReset.class, new Transition<>(State.IDLE, RESET_DATASET));
+		this.addTransition(State.STARTING, MsgStart.class, new Transition<>(State.STARTING, GET_INITIAL_MODEL));
+		this.addTransition(State.STARTING, MsgModel.class, new Transition<>(State.ACTIVE, START_TRAINING));
+		this.addTransition(State.STARTING, MsgStop.class, new Transition<>(State.IDLE));
+		this.addTransition(State.ACTIVE, MsgUpdateDone.class, new Transition<>(State.ACTIVE, NEXT_UPDATE));
+		this.addTransition(State.ACTIVE, MsgStop.class, new Transition<>(State.IDLE));
+		this.addTransition(Terminated.class, new Transition<>(State.CONNECTING, CONNECT));
+	}
+
+	public static Props makeProps(IObjectiveFunction objectiveFunction, TrainingSet trainingSet, ActorLookupFactory actorLookupFactory) {
+		return Props.create(Drone.class, objectiveFunction, trainingSet, actorLookupFactory);
 	}
 
 	/**
-	 * Retrieves the next training sample, calculates the model update and responds with an {@link UpdateModel} request.
+	 * Retrieves the next training sample, calculates the model update and responds with an {@link MsgUpdateModel} request.
 	 * 
 	 * @param model
 	 *            The up-to-date model.
 	 */
 	private void prepareModelUpdateAndRespond(final Model model, final ActorRef target) {
 		// Get the next training sample from the data set.
-		final Future<Object> trainingSampleFuture = Patterns.ask(dataFetcher, FetchNext.instance(), timeout);
+		final Future<Object> trainingSampleFuture = Patterns.ask(dataFetcher, MsgFetchNext.instance(), timeout);
 		
 		// Calculate the model update.
-		Future<UpdateModel> future = trainingSampleFuture.map(new Mapper<Object, UpdateModel>() {
+		Future<MsgUpdateModel> future = trainingSampleFuture.map(new Mapper<Object, MsgUpdateModel>() {
 
 			@Override
-			public UpdateModel apply(final Object trainingSampeObj) {
+			public MsgUpdateModel apply(final Object trainingSampeObj) {
 				if (trainingSampeObj instanceof EmptyDataSet) {
 					throw new RuntimeException("Empty data set");
 				}
@@ -131,11 +196,11 @@ public final class Drone extends UntypedActor {
 
 		}, getContext().dispatcher());
 		
-		// If the data retreival and calculation succeeded, respond to the sender with an update model request.
-		future.onSuccess(new OnSuccess<UpdateModel>() {
+		// If the data retrieval and calculation succeeded, respond to the sender with an update model request.
+		future.onSuccess(new OnSuccess<MsgUpdateModel>() {
 
 			@Override
-			public void onSuccess(UpdateModel updateModel) throws Throwable {
+			public void onSuccess(MsgUpdateModel updateModel) throws Throwable {
 				target.tell(updateModel, getSelf());
 				
 			}
@@ -146,16 +211,9 @@ public final class Drone extends UntypedActor {
 	/**
 	 * Invokes the objective function to calculate the next update step to the
 	 * model.
-	 * 
-	 * @param sample
-	 *            The training sample
-	 * @param model
-	 *            The up-to-date model.
-	 * @return The update step to the model.
 	 */
-	private UpdateModel calculateModelUpdate(TrainingSample sample, Model model) {
+	private MsgUpdateModel calculateModelUpdate(TrainingSample sample, Model model) {
 		Gradient gradient = this.objectiveFunction.getGradient(sample, model);
 		return MessageFactory.createUpdateModel(gradient);
 	}
-
 }

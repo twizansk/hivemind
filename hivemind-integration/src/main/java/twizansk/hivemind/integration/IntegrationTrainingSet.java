@@ -8,10 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import twizansk.hivemind.api.data.ITrainingSet;
+import twizansk.hivemind.api.data.TrainingSet;
 import twizansk.hivemind.api.data.TrainingSample;
 
-public class IntegrationTrainingSet implements ITrainingSet {
+public class IntegrationTrainingSet implements TrainingSet {
 
 	private BufferedReader reader;
 	

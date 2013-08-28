@@ -3,7 +3,7 @@ package twizansk.hivemind.integration;
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.api.objective.Gradient;
 import twizansk.hivemind.api.objective.IObjectiveFunction;
-import twizansk.hivemind.messages.queen.Model;
+import twizansk.hivemind.common.Model;
 
 public class IntegrationObjective implements IObjectiveFunction{
 

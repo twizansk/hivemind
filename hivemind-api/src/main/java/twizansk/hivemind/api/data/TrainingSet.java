@@ -1,12 +1,12 @@
 package twizansk.hivemind.api.data;
 
-public interface ITrainingSet {
+public interface TrainingSet {
 	
 	/**
 	 * Get the next training sample in the set.
 	 * 
 	 * @return 
-	 * 		A trainings sample
+	 * 		A training sample
 	 */
 	public TrainingSample getNext();
 	

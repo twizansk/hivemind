@@ -1,68 +1,80 @@
 package twizansk.hivemind.queen;
 
-import twizansk.hivemind.api.objective.IModelFactory;
-import twizansk.hivemind.messages.drone.GetModel;
-import twizansk.hivemind.messages.drone.UpdateModel;
-import twizansk.hivemind.messages.external.Start;
-import twizansk.hivemind.messages.external.Stop;
-import twizansk.hivemind.messages.queen.Model;
-import twizansk.hivemind.messages.queen.NotReady;
-import twizansk.hivemind.messages.queen.Ready;
-import twizansk.hivemind.messages.queen.UpdateDone;
+import twizansk.hivemind.api.objective.ModelFactory;
+import twizansk.hivemind.common.Model;
+import twizansk.hivemind.common.StateMachine;
+import twizansk.hivemind.messages.drone.MsgGetModel;
+import twizansk.hivemind.messages.drone.MsgUpdateModel;
+import twizansk.hivemind.messages.external.MsgConnectAndStart;
+import twizansk.hivemind.messages.external.MsgStop;
+import twizansk.hivemind.messages.queen.MsgModel;
+import twizansk.hivemind.messages.queen.MsgNotReady;
+import twizansk.hivemind.messages.queen.MsgUpdateDone;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
 
-public class Queen extends UntypedActor {
+public class Queen extends StateMachine {
 
 	enum State {
 		IDLE, ACTIVE
 	}
 
-	private final IModelFactory modelFactory;
+	private final ModelFactory modelFactory;
 	private final ModelUpdater modelUpdater;
-	private volatile State state = State.IDLE;
 	private volatile long t = 1;
 	private volatile Model model;
 
-	public Queen(IModelFactory modelFactory, ModelUpdater modelUpdater) {
-		super();
+	///////////////////////////////////////////////////////////////////////////////////
+	// Actions
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	// Initialize the queen:  reset the time counter and create a new model.
+	private Action<Queen> INIT = new Action<Queen>() {
+
+		public void apply(Queen actor, Object message) {
+			actor.t = 1;
+			actor.model = modelFactory.createModel();
+		}
+	};
+	
+	// Stop the queen and return a not ready  message to the sender.
+	private Action<Queen> STOP = new Action<Queen>() {
+
+		public void apply(Queen actor, Object message) {
+			actor.getSender().tell(new MsgNotReady(message), getSelf());
+		}
+	};
+	
+	// Return the current model to the sender.
+	private Action<Queen> RETURN_MODEL = new Action<Queen>() {
+
+		public void apply(Queen actor, Object message) {
+			actor.getSender().tell(new MsgModel(actor.model), getSelf());
+		}
+	};
+	
+	// Update the current model with a received update.
+	private Action<Queen> UPDATE_MODEL = new Action<Queen>() {
+
+		public void apply(Queen actor, Object message) {
+			actor.modelUpdater.update(((MsgUpdateModel) message), actor.model, actor.t++);
+			getSender().tell(new MsgUpdateDone(actor.model), getSelf());
+		}
+	};
+	
+	public Queen(ModelFactory modelFactory, ModelUpdater modelUpdater) {
 		this.modelFactory = modelFactory;
 		this.modelUpdater = modelUpdater;
+		
+		// Define the state machine.
+		this.state = State.IDLE;
+		this.addTransition(State.IDLE, MsgConnectAndStart.class, new Transition<Queen>(State.ACTIVE, INIT));
+		this.addTransition(State.ACTIVE, MsgStop.class, new Transition<Queen>(State.IDLE, STOP));
+		this.addTransition(State.ACTIVE, MsgGetModel.class, new Transition<Queen>(State.ACTIVE, RETURN_MODEL));
+		this.addTransition(State.ACTIVE, MsgUpdateModel.class, new Transition<Queen>(State.ACTIVE, UPDATE_MODEL));
 	}
 
-	public static Props makeProps(IModelFactory modelFactory, ModelUpdater modelUpdater) {
+	public static Props makeProps(ModelFactory modelFactory, ModelUpdater modelUpdater) {
 		return Props.create(Queen.class, modelFactory, modelUpdater);
-	}
-
-	@Override
-	public void onReceive(Object msg) throws Exception {
-		// These are the state change messages.  a Start message results in a state of ACTIVE and a Stop message 
-		// results in a state of IDLE.  Note that all state changes are idempotent.
-		if (msg instanceof Start) {
-			this.state = State.ACTIVE;
-			this.t = 1;
-			this.model = modelFactory.createModel();
-			getSender().tell(Ready.instance(), getSelf());
-		} else if (msg instanceof Stop) {
-			this.state = State.IDLE;
-			getSender().tell(new NotReady(msg), getSelf());
-		}
-		
-		// All other messages are only allowed if the state is ACTIVE
-		else if (this.state.equals(State.IDLE)) {
-			getSender().tell(new NotReady(msg), getSelf());
-		}
-		
-		// Here we do the real work.
-		else if (msg instanceof GetModel) {
-			getSender().tell(model, getSelf());
-		}
-		else if (msg instanceof UpdateModel) {
-			this.modelUpdater.update(((UpdateModel) msg), this.model, this.t++);
-			getSender().tell(new UpdateDone(this.model), getSelf());
-		} else {
-			unhandled(msg);
-		}
 	}
 
 }

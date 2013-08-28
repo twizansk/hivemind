@@ -1,9 +1,9 @@
 package twizansk.hivemind.integration;
 
-import twizansk.hivemind.api.objective.IModelFactory;
-import twizansk.hivemind.messages.queen.Model;
+import twizansk.hivemind.api.objective.ModelFactory;
+import twizansk.hivemind.common.Model;
 
-public class IntegrationModelFactory implements IModelFactory {
+public class IntegrationModelFactory implements ModelFactory {
 
 	@Override
 	public Model createModel() {
