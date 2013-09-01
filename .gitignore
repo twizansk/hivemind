@@ -13,7 +13,6 @@ local.properties
 .loadpath
 target/
 test-output/
-hivemind-drone/
 
 # Locally stored "Eclipse launch configurations"
 *.launch
