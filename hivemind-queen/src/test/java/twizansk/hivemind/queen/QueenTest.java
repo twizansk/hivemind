@@ -27,6 +27,12 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.testkit.TestActorRef;
 
+/**
+ * Test state machine transitions for queen.
+ * 
+ * @author Tommer Wizansky
+ *
+ */
 @Test(singleThreaded=true)
 public class QueenTest {
 

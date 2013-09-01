@@ -32,6 +32,7 @@ public class ActorLookup {
 	public void sendLookup() {
 		ActorSelection queenSelection =  this.context.system().actorSelection(path);
 		queenSelection.tell(new Identify(path), clientActor);
+//		System.out.println("send lookup to: " + queenSelection.toString());
 	}
 	
 	/**

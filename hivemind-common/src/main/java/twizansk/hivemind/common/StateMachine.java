@@ -4,9 +4,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 public abstract class StateMachine extends UntypedActor {
 
+	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	
 	protected Object state;
 	private Map<Object, Map<Object, Transition<?>>> transitions = new HashMap<Object, Map<Object,Transition<?>>>();
 	private Map<Object, Transition<?>> commonTransitions = new HashMap<Object, StateMachine.Transition<?>>();
@@ -22,11 +26,12 @@ public abstract class StateMachine extends UntypedActor {
 	 * @param <T>
 	 */
 	public static class Transition<T extends StateMachine> {
-
+		
 		private final Object state;
 		private final Action<T> action;
 		private final Condition<T> condition;
 		
+		private LoggingAdapter log;
 		
 		public Transition(Object state, Action<T> action, Condition<T> condition) {
 			this.state = state;
@@ -43,14 +48,23 @@ public abstract class StateMachine extends UntypedActor {
 		}
 
 		@SuppressWarnings("unchecked")
-		private void apply(StateMachine stateMachine, Object message) {
+		private boolean apply(StateMachine stateMachine, Object message) {
 			if (this.condition == null || this.condition.isSatisfied((T) stateMachine, message)) {
-				System.out.printf("Received: %s. Transitioning from %s to %s\n", message.getClass().getSimpleName(), stateMachine.state, this.state);
 				if (this.action != null) {
 					this.action.apply((T) stateMachine, message);
 				}
+				if (log != null) {
+					log.debug(String.format("message: %s, transition: %s --> %s", 
+						message.getClass().getSimpleName(), stateMachine.state, this.state));
+				}
 				stateMachine.state = this.state;
+				return true;
 			}
+			return false;
+		}
+		
+		void setLog(LoggingAdapter log) {
+			this.log = log;
 		}
 
 	}
@@ -99,6 +113,7 @@ public abstract class StateMachine extends UntypedActor {
 			transitions.put(state, stateTransitions);
 		}
 		stateTransitions.put(message, transition);
+		transition.setLog(log);
 	}
 	
 	/**
@@ -124,7 +139,7 @@ public abstract class StateMachine extends UntypedActor {
 	 */
 	protected Transition<?> getTransition(Object state, Object message) {
 		// Look for the transition in the common transitions first.
-		if (commonTransitions.containsKey(message)) {
+		if (commonTransitions.containsKey(message.getClass())) {
 			return commonTransitions.get(message.getClass());
 		}
 		
