@@ -8,6 +8,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import scala.Some;
+import twizansk.hivemind.common.Model;
 import twizansk.hivemind.common.StateMachine;
 import twizansk.hivemind.drone.Drone.State;
 import twizansk.hivemind.messages.drone.MsgGetModel;
@@ -21,7 +22,6 @@ import twizansk.hivemind.test.Initializer;
 import twizansk.hivemind.test.MockActor;
 import twizansk.hivemind.test.MockActorLookupFactory;
 import twizansk.hivemind.test.MockCallback;
-import twizansk.hivemind.test.MockModel;
 import twizansk.hivemind.test.Validatable;
 import twizansk.hivemind.test.Validator;
 import akka.actor.ActorIdentity;
@@ -198,7 +198,7 @@ public class DroneTest {
 				{
 					State.STARTING, 
 					State.ACTIVE, 
-					new MsgModel(new MockModel()),
+					new MsgModel(new Model()),
 					TestActorRef.create(ActorSystem.create("QueenSystem"), MockActor.makeProps(), "testQueen"),
 					new Initializer() {
 						public void init(UntypedActor actor) throws Exception {
@@ -230,7 +230,7 @@ public class DroneTest {
 				{
 					State.ACTIVE, 
 					State.ACTIVE, 
-					new MsgUpdateDone(new MockModel()),
+					new MsgUpdateDone(new Model()),
 					TestActorRef.create(ActorSystem.create("QueenSystem"), MockActor.makeProps(), "testQueen"),
 					new Initializer() {
 						public void init(UntypedActor actor) throws Exception {

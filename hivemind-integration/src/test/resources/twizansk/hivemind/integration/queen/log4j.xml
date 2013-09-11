@@ -17,15 +17,29 @@
    <param name="ConversionPattern" value="%d{yyyy-MM-dd hh:mm:ss} %-5p %c{1} - %m%n" />
   </layout>
  </appender>
+ 
+ <appender name="queen" class="org.apache.log4j.RollingFileAppender">
+  <param name="File" value="/var/log/hivemind/queen.log" />
+  <param name="MaxFileSize" value="20MB" />
+  <param name="MaxBackupIndex" value="10" />
+  <layout class="org.apache.log4j.PatternLayout">
+   <param name="ConversionPattern" value="%d{yyyy-MM-dd hh:mm:ss} %-5p %c{1} - %m%n" />
+  </layout>
+ </appender>
 
  <logger name="akka" additivity="false">
   <level value="INFO" />
   <appender-ref ref="console" />
  </logger>
  
- <logger name="twizansk.hivemind" additivity="false">
+ <logger name="twizansk.hivemind.common.StateMachine" additivity="false">
   <level value="DEBUG" />
   <appender-ref ref="messages" />
+ </logger>
+ 
+ <logger name="twizansk.hivemind.queen" additivity="false">
+  <level value="DEBUG" />
+  <appender-ref ref="queen" />
  </logger>
 
  <root>

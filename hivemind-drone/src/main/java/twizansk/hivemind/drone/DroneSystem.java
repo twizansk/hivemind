@@ -1,7 +1,7 @@
 package twizansk.hivemind.drone;
 
 import twizansk.hivemind.api.data.TrainingSet;
-import twizansk.hivemind.api.objective.IObjectiveFunction;
+import twizansk.hivemind.api.model.ObjectiveFunction;
 import twizansk.hivemind.common.DefaultActorLookupFactory;
 import twizansk.hivemind.messages.external.MsgConnectAndStart;
 import akka.actor.ActorRef;
@@ -18,7 +18,7 @@ import com.typesafe.config.ConfigFactory;
  */
 public class DroneSystem {
 		
-	public void init(IObjectiveFunction objective, TrainingSet trainingSet, String queenPath) throws Exception {
+	public void init(ObjectiveFunction<?> objective, TrainingSet trainingSet, String queenPath) throws Exception {
 		final ActorSystem system = ActorSystem.create("DroneSystem");
 		
 		// Create the drone actor and start it.
@@ -34,15 +34,19 @@ public class DroneSystem {
 		Config config = ConfigFactory.load("drone");
 		Config dataConfig = ConfigFactory.load("data");
 		
-		String objectiveClassName = config.getString("hivemind.drone.objective");
-		String trainingSetClassName = dataConfig.getString("hivemind.data.trainingSet");
+		// Get the remote path to the queen.
 		String queenPath = config.getString("hivemind.queen.path");
 		
+		// Initialize the objective function.
+		String objectiveClassName = config.getString("hivemind.drone.objective");
 		Class<?> objectiveClass = Class.forName(objectiveClassName);
-		Class<?> trainingSetClass = Class.forName(trainingSetClassName);
+		ObjectiveFunction<?> objective = (ObjectiveFunction<?>) objectiveClass.newInstance();
 		
-		IObjectiveFunction objective = (IObjectiveFunction) objectiveClass.newInstance();
+		// Initialize the training set.
+		String trainingSetClassName = dataConfig.getString("hivemind.data.trainingset.class");
+		Class<?> trainingSetClass = Class.forName(trainingSetClassName);
 		TrainingSet trainingSet = (TrainingSet) trainingSetClass.newInstance();
+		trainingSet.init(dataConfig);
 		
 		new DroneSystem().init(objective, trainingSet, queenPath);
 	}

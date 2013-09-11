@@ -5,10 +5,10 @@ import java.util.concurrent.TimeUnit;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import twizansk.hivemind.api.data.EmptyDataSet;
-import twizansk.hivemind.api.data.TrainingSet;
 import twizansk.hivemind.api.data.TrainingSample;
-import twizansk.hivemind.api.objective.Gradient;
-import twizansk.hivemind.api.objective.IObjectiveFunction;
+import twizansk.hivemind.api.data.TrainingSet;
+import twizansk.hivemind.api.model.Gradient;
+import twizansk.hivemind.api.model.ObjectiveFunction;
 import twizansk.hivemind.common.ActorLookup;
 import twizansk.hivemind.common.ActorLookupFactory;
 import twizansk.hivemind.common.Model;
@@ -49,7 +49,7 @@ public final class Drone extends StateMachine {
 	}
 
 	private final static Timeout timeout = new Timeout(Duration.create(5, "seconds"));
-	private final IObjectiveFunction objectiveFunction;
+	private final ObjectiveFunction<Model> objectiveFunction;
 	private final ActorRef dataFetcher;
 	private final ActorLookup queenLookup;
 	
@@ -145,7 +145,7 @@ public final class Drone extends StateMachine {
 	};
 	
 	
-	public Drone(IObjectiveFunction objectiveFunction, TrainingSet trainingSet, ActorLookupFactory actorLookupFactory) {
+	public Drone(ObjectiveFunction<Model> objectiveFunction, TrainingSet trainingSet, ActorLookupFactory actorLookupFactory) {
 		this.objectiveFunction = objectiveFunction;
 		this.queenLookup = actorLookupFactory.create(this.getContext(), this.getSelf());
 		this.state = State.DISCONNECTED;
@@ -167,7 +167,7 @@ public final class Drone extends StateMachine {
 		this.addTransition(Terminated.class, new Transition<>(State.CONNECTING, CONNECT));
 	}
 
-	public static Props makeProps(IObjectiveFunction objectiveFunction, TrainingSet trainingSet, ActorLookupFactory actorLookupFactory) {
+	public static Props makeProps(ObjectiveFunction<?> objectiveFunction, TrainingSet trainingSet, ActorLookupFactory actorLookupFactory) {
 		return Props.create(Drone.class, objectiveFunction, trainingSet, actorLookupFactory);
 	}
 

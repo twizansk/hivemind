@@ -1,4 +1,4 @@
-package twizansk.hivemind.api.objective;
+package twizansk.hivemind.api.model;
 
 public final class Gradient {
 	public final double[] grad;

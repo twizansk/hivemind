@@ -1,6 +1,7 @@
 package twizansk.hivemind.queen;
 
-import twizansk.hivemind.api.objective.ModelFactory;
+import twizansk.hivemind.api.model.ModelUpdater;
+import twizansk.hivemind.api.model.Stepper;
 import twizansk.hivemind.common.Model;
 import twizansk.hivemind.common.StateMachine;
 import twizansk.hivemind.messages.drone.MsgGetModel;
@@ -18,8 +19,8 @@ public class Queen extends StateMachine {
 		IDLE, ACTIVE
 	}
 
-	private final ModelFactory modelFactory;
 	private final ModelUpdater modelUpdater;
+	private final Stepper stepper;
 	private volatile long t = 1;
 	private volatile Model model;
 
@@ -32,7 +33,7 @@ public class Queen extends StateMachine {
 
 		public void apply(Queen actor, Object message) {
 			actor.t = 1;
-			actor.model = modelFactory.createModel();
+			actor.model = new Model();
 		}
 	};
 	
@@ -56,14 +57,18 @@ public class Queen extends StateMachine {
 	private Action<Queen> UPDATE_MODEL = new Action<Queen>() {
 
 		public void apply(Queen actor, Object message) {
-			actor.modelUpdater.update(((MsgUpdateModel) message), actor.model, actor.t++);
+			actor.modelUpdater.update(
+					((MsgUpdateModel) message), 
+					actor.model, 
+					actor.t++, 
+					stepper.getStepSize());
 			getSender().tell(new MsgUpdateDone(actor.model), getSelf());
 		}
 	};
 	
-	public Queen(ModelFactory modelFactory, ModelUpdater modelUpdater) {
-		this.modelFactory = modelFactory;
+	public Queen(ModelUpdater modelUpdater, Stepper stepper) {
 		this.modelUpdater = modelUpdater;
+		this.stepper = stepper;
 		
 		// Define the state machine.
 		this.state = State.IDLE;
@@ -73,8 +78,8 @@ public class Queen extends StateMachine {
 		this.addTransition(State.ACTIVE, MsgUpdateModel.class, new Transition<Queen>(State.ACTIVE, UPDATE_MODEL));
 	}
 
-	public static Props makeProps(ModelFactory modelFactory, ModelUpdater modelUpdater) {
-		return Props.create(Queen.class, modelFactory, modelUpdater);
+	public static Props makeProps(ModelUpdater modelUpdater, Stepper stepper) {
+		return Props.create(Queen.class, modelUpdater, stepper);
 	}
 
 }

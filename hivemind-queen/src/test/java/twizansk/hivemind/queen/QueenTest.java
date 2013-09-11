@@ -7,7 +7,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import twizansk.hivemind.api.objective.ModelFactory;
+import twizansk.hivemind.api.model.ModelUpdater;
+import twizansk.hivemind.api.model.Stepper;
 import twizansk.hivemind.common.Model;
 import twizansk.hivemind.common.StateMachine;
 import twizansk.hivemind.messages.drone.MsgGetModel;
@@ -27,6 +28,8 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.testkit.TestActorRef;
 
+import com.typesafe.config.Config;
+
 /**
  * Test state machine transitions for queen.
  * 
@@ -36,20 +39,15 @@ import akka.testkit.TestActorRef;
 @Test(singleThreaded=true)
 public class QueenTest {
 
-	class MockModelUpdater extends ModelUpdater {
+	class MockModelUpdater implements ModelUpdater {
 		boolean updated = false;
 
 		@Override
-		public void update(MsgUpdateModel updateModel, Model model, long t) {
-			super.update(updateModel, model, t);
+		public void update(MsgUpdateModel updateModel, Model model, long t, double stepSize) {
 			this.updated = true;
 		}
 	}
 	
-	class MockModel implements Model {
-		private static final long serialVersionUID = 1L;
-	}
-
 	private class QueenValidatable implements Validatable {
 		final Queen queen;
 		final TestActorRef<MockActor> sender;
@@ -90,11 +88,13 @@ public class QueenTest {
 		ActorSystem system = ActorSystem.create("DroneSystem");
 		try {
 			MockModelUpdater modelUpdater = new MockModelUpdater();
-			Props props = Queen.makeProps(new ModelFactory() {
-				public Model createModel() {
-					return new MockModel();
-				}
-			}, modelUpdater);
+			Props props = Queen.makeProps(
+				modelUpdater,
+				new Stepper() {
+					public void init(Config config) {}
+					public void reset() {}
+					public double getStepSize() {return 1;}
+				});
 			TestActorRef<Queen> ref = TestActorRef.create(system, props, "testQueen");
 			Queen queen = ref.underlyingActor();
 			initializer.init(queen);

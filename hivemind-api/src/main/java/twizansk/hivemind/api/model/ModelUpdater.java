@@ -1,4 +1,4 @@
-package twizansk.hivemind.queen;
+package twizansk.hivemind.api.model;
 
 import twizansk.hivemind.common.Model;
 import twizansk.hivemind.messages.drone.MsgUpdateModel;
@@ -9,10 +9,8 @@ import twizansk.hivemind.messages.drone.MsgUpdateModel;
  * @author Tommer Wizansky
  *
  */
-public class ModelUpdater {
+public interface ModelUpdater {
 	
-	public void update(MsgUpdateModel updateModel, Model model, long t) {
-		// TODO: need to implement
-	}
+	void update(MsgUpdateModel updateModel, Model model, long t, double stepSize);
 	
 }

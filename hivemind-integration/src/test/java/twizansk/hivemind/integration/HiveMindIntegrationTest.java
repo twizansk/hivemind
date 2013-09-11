@@ -11,11 +11,12 @@ import org.testng.annotations.Test;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
+import twizansk.hivemind.common.Model;
 import twizansk.hivemind.common.SynchronousActorLookup;
 import twizansk.hivemind.messages.drone.MsgGetModel;
 import twizansk.hivemind.messages.drone.MsgUpdateModel;
-import twizansk.hivemind.messages.external.MsgReset;
 import twizansk.hivemind.messages.external.MsgConnectAndStart;
+import twizansk.hivemind.messages.external.MsgReset;
 import twizansk.hivemind.messages.external.MsgStop;
 import twizansk.hivemind.messages.queen.MsgNotReady;
 import twizansk.hivemind.messages.queen.MsgReady;
@@ -94,7 +95,7 @@ public class HiveMindIntegrationTest {
 		Thread.sleep(500000);
 		Future<Object> f = Patterns.ask(queen, MsgGetModel.instance(), 1000);
 		Object model = Await.result(f, Duration.create(1, TimeUnit.SECONDS));
- 		Assert.assertTrue(Arrays.equals(((IntegrationModel) model).params, new double[] {13, 13, 13}));
+ 		Assert.assertTrue(Arrays.equals(((Model) model).params, new double[] {13, 13, 13}));
  		
  		// restart the queen.  check that the model is reset.
  		drone.tell(MsgStop.instance(), null);
@@ -102,7 +103,7 @@ public class HiveMindIntegrationTest {
  		queen.tell(MsgConnectAndStart.instance(), null);
  		f = Patterns.ask(queen, MsgGetModel.instance(), 1000);
 		model = Await.result(f, Duration.create(1, TimeUnit.SECONDS));
- 		Assert.assertTrue(Arrays.equals(((IntegrationModel) model).params, new double[] {0, 0, 0}));
+ 		Assert.assertTrue(Arrays.equals(((Model) model).params, new double[] {0, 0, 0}));
 	}
 	
 }

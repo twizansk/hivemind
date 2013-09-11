@@ -23,7 +23,7 @@
   <appender-ref ref="console" />
  </logger>
  
- <logger name="twizansk.hivemind" additivity="false">
+ <logger name="twizansk.hivemind.common.StateMachine" additivity="false">
   <level value="DEBUG" />
   <appender-ref ref="messages" />
  </logger>

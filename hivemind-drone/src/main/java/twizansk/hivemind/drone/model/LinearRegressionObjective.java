@@ -1,11 +1,11 @@
-package twizansk.hivemind.integration;
+package twizansk.hivemind.drone.model;
 
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.api.model.Gradient;
 import twizansk.hivemind.api.model.ObjectiveFunction;
 import twizansk.hivemind.common.Model;
 
-public class IntegrationObjective implements ObjectiveFunction<Model> {
+public class LinearRegressionObjective implements ObjectiveFunction<Model> {
 
 	@Override
 	public Gradient getGradient(TrainingSample sample, Model model) {

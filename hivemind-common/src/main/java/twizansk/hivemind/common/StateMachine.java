@@ -9,7 +9,7 @@ import akka.event.LoggingAdapter;
 
 public abstract class StateMachine extends UntypedActor {
 
-	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+	protected final LoggingAdapter log = Logging.getLogger(getContext().system(), StateMachine.class);
 	
 	protected Object state;
 	private Map<Object, Map<Object, Transition<?>>> transitions = new HashMap<Object, Map<Object,Transition<?>>>();
