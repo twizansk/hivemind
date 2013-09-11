@@ -49,7 +49,7 @@ public class InMemoryCyclicCSVTrainingSet implements TrainingSet {
 			this.t = 0;
 			Collections.shuffle(indexes);
 		}
-		int i = indexes.get(t);
+ 		int i = indexes.get(t++);
 		return new TrainingSample(X.get(i), y.get(i));
 	}
 
