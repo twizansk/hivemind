@@ -25,8 +25,8 @@ public class SynchronousActorLookup extends UntypedActor {
 	
 	public SynchronousActorLookup(String path) {
 		this.path = path;
-		ActorSelection queenSelection = getContext().system().actorSelection(path);
-		queenSelection.tell(new Identify(path), getSelf());
+		ActorSelection selection = getContext().system().actorSelection(path);
+		selection.tell(new Identify(path), getSelf());
 	}
 
 	public static Props makeProps(String queenPath) {
