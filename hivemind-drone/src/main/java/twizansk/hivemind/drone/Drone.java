@@ -8,16 +8,16 @@ import twizansk.hivemind.api.data.EmptyDataSet;
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.api.data.TrainingSet;
 import twizansk.hivemind.api.model.Gradient;
+import twizansk.hivemind.api.model.Model;
+import twizansk.hivemind.api.model.MsgUpdateModel;
 import twizansk.hivemind.api.model.ObjectiveFunction;
 import twizansk.hivemind.common.ActorLookup;
 import twizansk.hivemind.common.ActorLookupFactory;
-import twizansk.hivemind.common.Model;
 import twizansk.hivemind.common.StateMachine;
 import twizansk.hivemind.drone.data.DataFetcher;
 import twizansk.hivemind.messages.drone.MsgFetchNext;
+import twizansk.hivemind.messages.drone.MsgGetInitialModel;
 import twizansk.hivemind.messages.drone.MsgGetModel;
-import twizansk.hivemind.messages.drone.MsgStart;
-import twizansk.hivemind.messages.drone.MsgUpdateModel;
 import twizansk.hivemind.messages.external.MsgConnectAndStart;
 import twizansk.hivemind.messages.external.MsgReset;
 import twizansk.hivemind.messages.external.MsgStop;
@@ -45,7 +45,7 @@ import akka.util.Timeout;
 public final class Drone extends StateMachine {
 
 	enum State {
-		DISCONNECTED, CONNECTING, IDLE, STARTING, ACTIVE
+		DISCONNECTED, CONNECTING, STOPPED, STARTING, ACTIVE
 	}
 
 	private final static Timeout timeout = new Timeout(Duration.create(5, "seconds"));
@@ -76,14 +76,14 @@ public final class Drone extends StateMachine {
 		
 	};  
 	
-	private final Action<Drone> INIT_QUEEN = new Action<Drone>() {
+	private final Action<Drone> INIT_QUEEN_AND_START = new Action<Drone>() {
 
 		@Override
 		public void apply(Drone actor, Object message) {
 			if (actor.queenLookup.isTarget((ActorIdentity) message)) {
 				actor.queen = ((ActorIdentity) message).getRef();
 				actor.getContext().watch(queen);
-				actor.getSelf().tell(MsgStart.instance(), getSender());
+				GET_INITIAL_MODEL.apply(actor, null);
 			}
 		}
 		
@@ -97,7 +97,7 @@ public final class Drone extends StateMachine {
 			getContext().system().scheduler().scheduleOnce(
 					Duration.create(1, TimeUnit.SECONDS),
 					getSelf(), 
-					MsgStart.instance(), 
+					MsgGetInitialModel.instance(), 
 					getContext().dispatcher(), 
 					getSelf());
 		}
@@ -156,14 +156,14 @@ public final class Drone extends StateMachine {
 		// Define the state machine
 		this.addTransition(State.DISCONNECTED, MsgConnectAndStart.class, new Transition<>(State.CONNECTING, CONNECT));
 		this.addTransition(State.CONNECTING, MsgConnectAndStart.class, new Transition<>(State.CONNECTING, CONNECT));
-		this.addTransition(State.CONNECTING, ActorIdentity.class, new Transition<>(State.IDLE, INIT_QUEEN, IS_QUEEN_IDENTITY));
-		this.addTransition(State.IDLE, MsgStart.class, new Transition<>(State.STARTING, GET_INITIAL_MODEL));
-		this.addTransition(State.IDLE, MsgReset.class, new Transition<>(State.IDLE, RESET_DATASET));
-		this.addTransition(State.STARTING, MsgStart.class, new Transition<>(State.STARTING, GET_INITIAL_MODEL));
+		this.addTransition(State.CONNECTING, ActorIdentity.class, new Transition<>(State.STARTING, INIT_QUEEN_AND_START, IS_QUEEN_IDENTITY));
+		this.addTransition(State.STARTING, MsgGetInitialModel.class, new Transition<>(State.STARTING, GET_INITIAL_MODEL));
 		this.addTransition(State.STARTING, MsgModel.class, new Transition<>(State.ACTIVE, START_TRAINING));
-		this.addTransition(State.STARTING, MsgStop.class, new Transition<>(State.IDLE));
+		this.addTransition(State.STARTING, MsgStop.class, new Transition<>(State.STOPPED));
 		this.addTransition(State.ACTIVE, MsgUpdateDone.class, new Transition<>(State.ACTIVE, NEXT_UPDATE));
-		this.addTransition(State.ACTIVE, MsgStop.class, new Transition<>(State.IDLE));
+		this.addTransition(State.ACTIVE, MsgStop.class, new Transition<>(State.STOPPED));
+		this.addTransition(State.STOPPED, MsgConnectAndStart.class, new Transition<>(State.STARTING, GET_INITIAL_MODEL));
+		this.addTransition(State.STOPPED, MsgReset.class, new Transition<>(State.STOPPED, RESET_DATASET));
 		this.addTransition(Terminated.class, new Transition<>(State.CONNECTING, CONNECT));
 	}
 

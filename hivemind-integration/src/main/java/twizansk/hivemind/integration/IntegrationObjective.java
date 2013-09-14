@@ -2,8 +2,8 @@ package twizansk.hivemind.integration;
 
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.api.model.Gradient;
+import twizansk.hivemind.api.model.Model;
 import twizansk.hivemind.api.model.ObjectiveFunction;
-import twizansk.hivemind.common.Model;
 
 public class IntegrationObjective implements ObjectiveFunction<Model> {
 

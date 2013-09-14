@@ -3,9 +3,9 @@ package twizansk.hivemind.queen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import twizansk.hivemind.api.model.Model;
 import twizansk.hivemind.api.model.ModelUpdater;
-import twizansk.hivemind.common.Model;
-import twizansk.hivemind.messages.drone.MsgUpdateModel;
+import twizansk.hivemind.api.model.MsgUpdateModel;
 
 public class DefaultModelUpdater implements ModelUpdater {
 

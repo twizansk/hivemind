@@ -1,4 +1,4 @@
-package twizansk.hivemind.messages.drone;
+package twizansk.hivemind.api.model;
 
 import java.io.Serializable;
 

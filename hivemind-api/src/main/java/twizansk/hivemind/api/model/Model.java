@@ -1,4 +1,4 @@
-package twizansk.hivemind.common;
+package twizansk.hivemind.api.model;
 
 import java.io.Serializable;
 import java.util.Arrays;

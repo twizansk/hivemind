@@ -2,8 +2,8 @@ package twizansk.hivemind.drone;
 
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.api.model.Gradient;
+import twizansk.hivemind.api.model.Model;
 import twizansk.hivemind.api.model.ObjectiveFunction;
-import twizansk.hivemind.common.Model;
 
 class MockObjectiveFunction implements ObjectiveFunction<Model> {
 

@@ -21,6 +21,44 @@
   		<version>${version}</version>
   		<scope>test</scope>
      </dependency>
+     
+      <dependency>
+      	<groupId>${groupId}</groupId>
+  		<artifactId>hivemind-common</artifactId>
+  		<version>${version}</version>
+     </dependency>
       
   </dependencies>
+  
+   <build>
+    <plugins>
+       <plugin>
+	        <groupId>org.apache.maven.plugins</groupId>
+	        <artifactId>maven-shade-plugin</artifactId>
+	        <executions>
+	          <execution>
+	            <phase>package</phase>
+	            <goals>
+	              <goal>shade</goal>
+	            </goals>
+	          </execution>
+	        </executions>
+      </plugin>
+       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${groupId}</groupId>
+                  <artifactId>${artifactId}</artifactId>
+                  <version>${version}</version>
+                  <overWrite>true</overWrite>
+                  <outputDirectory>${deploy.lib.path}</outputDirectory>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+      </plugin>
+     </plugins>
+    </build>
 </project>

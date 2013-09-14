@@ -2,7 +2,7 @@ package twizansk.hivemind.messages.queen;
 
 import java.io.Serializable;
 
-import twizansk.hivemind.common.Model;
+import twizansk.hivemind.api.model.Model;
 
 public final class MsgUpdateDone implements Serializable {
 	private static final long serialVersionUID = 1L;

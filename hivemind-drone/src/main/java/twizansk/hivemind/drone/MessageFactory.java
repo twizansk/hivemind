@@ -1,7 +1,7 @@
 package twizansk.hivemind.drone;
 
 import twizansk.hivemind.api.model.Gradient;
-import twizansk.hivemind.messages.drone.MsgUpdateModel;
+import twizansk.hivemind.api.model.MsgUpdateModel;
 
 public class MessageFactory {
 

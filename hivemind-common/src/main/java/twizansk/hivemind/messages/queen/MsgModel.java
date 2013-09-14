@@ -2,7 +2,7 @@ package twizansk.hivemind.messages.queen;
 
 import java.io.Serializable;
 
-import twizansk.hivemind.common.Model;
+import twizansk.hivemind.api.model.Model;
 
 /**
  * Used to transmit a training model between actors.

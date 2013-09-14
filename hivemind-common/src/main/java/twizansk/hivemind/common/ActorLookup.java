@@ -30,9 +30,8 @@ public class ActorLookup {
 	 * Send an asynchronous identification request to the target.  Route the response back to the client actor.
 	 */
 	public void sendLookup() {
-		ActorSelection queenSelection =  this.context.system().actorSelection(path);
-		queenSelection.tell(new Identify(path), clientActor);
-//		System.out.println("send lookup to: " + queenSelection.toString());
+		ActorSelection selection =  this.context.system().actorSelection(path);
+		selection.tell(new Identify(path), clientActor);
 	}
 	
 	/**

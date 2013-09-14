@@ -7,12 +7,12 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import twizansk.hivemind.api.model.Model;
 import twizansk.hivemind.api.model.ModelUpdater;
+import twizansk.hivemind.api.model.MsgUpdateModel;
 import twizansk.hivemind.api.model.Stepper;
-import twizansk.hivemind.common.Model;
 import twizansk.hivemind.common.StateMachine;
 import twizansk.hivemind.messages.drone.MsgGetModel;
-import twizansk.hivemind.messages.drone.MsgUpdateModel;
 import twizansk.hivemind.messages.external.MsgConnectAndStart;
 import twizansk.hivemind.messages.external.MsgStop;
 import twizansk.hivemind.messages.queen.MsgModel;

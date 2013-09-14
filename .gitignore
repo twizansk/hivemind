@@ -1,6 +1,7 @@
 .project
 .metadata
-bin/**
+bin/**/*
+lib/**/*
 tmp/**
 tmp/**/*
 *.tmp
@@ -13,6 +14,8 @@ local.properties
 .loadpath
 target/
 test-output/
+hivemind-deploy/
+*~
 
 # Locally stored "Eclipse launch configurations"
 *.launch

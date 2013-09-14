@@ -8,12 +8,12 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import scala.Some;
-import twizansk.hivemind.common.Model;
+import twizansk.hivemind.api.model.Model;
+import twizansk.hivemind.api.model.MsgUpdateModel;
 import twizansk.hivemind.common.StateMachine;
 import twizansk.hivemind.drone.Drone.State;
+import twizansk.hivemind.messages.drone.MsgGetInitialModel;
 import twizansk.hivemind.messages.drone.MsgGetModel;
-import twizansk.hivemind.messages.drone.MsgStart;
-import twizansk.hivemind.messages.drone.MsgUpdateModel;
 import twizansk.hivemind.messages.external.MsgConnectAndStart;
 import twizansk.hivemind.messages.external.MsgStop;
 import twizansk.hivemind.messages.queen.MsgModel;
@@ -164,6 +164,28 @@ public class DroneTest {
 							try {
 								MockActor queen = ((TestActorRef<MockActor>) queenField.get(validatable.actor)).underlyingActor();
 								Assert.assertNotNull(queen);
+							} catch (IllegalArgumentException | IllegalAccessException e) {
+								throw new RuntimeException(e);
+							}
+						}
+					}
+				},
+				{
+					State.STOPPED, 
+					State.STARTING, 
+					MsgConnectAndStart.instance(),
+					null,
+					new Initializer() {
+						public void init(UntypedActor actor) throws Exception {
+							queenField.set(actor, TestActorRef.create(ActorSystem.create("QueenSystem"), MockActor.makeProps(), "testQueen"));
+						}
+					},
+					new Validator<DroneValidatable>() {
+						@SuppressWarnings("unchecked")
+						public void validate(DroneValidatable validatable) {
+							try {
+								MockActor queen = ((TestActorRef<MockActor>) queenField.get(validatable.actor)).underlyingActor();
+								Assert.assertNotNull(queen);
 								Assert.assertEquals(queen.getLastMessage(), MsgGetModel.instance());
 								
 							} catch (IllegalArgumentException | IllegalAccessException e) {
@@ -175,7 +197,7 @@ public class DroneTest {
 				{
 					State.STARTING, 
 					State.STARTING, 
-					MsgStart.instance(),
+					MsgGetInitialModel.instance(),
 					null,
 					new Initializer() {
 						public void init(UntypedActor actor) throws Exception {
@@ -215,7 +237,7 @@ public class DroneTest {
 				},
 				{
 					State.STARTING, 
-					State.IDLE, 
+					State.STOPPED, 
 					MsgStop.instance(),
 					null,
 					new Initializer() {
@@ -247,7 +269,7 @@ public class DroneTest {
 				},
 				{
 					State.ACTIVE, 
-					State.IDLE, 
+					State.STOPPED, 
 					MsgStop.instance(),
 					null,
 					new Initializer() {

@@ -6,4 +6,12 @@
     <artifactId>hivemind-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
+  
+   <dependencies>
+       <dependency>
+      	<groupId>${groupId}</groupId>
+  		<artifactId>hivemind-api</artifactId>
+  		<version>${version}</version>
+     </dependency>
+   </dependencies>
 </project>

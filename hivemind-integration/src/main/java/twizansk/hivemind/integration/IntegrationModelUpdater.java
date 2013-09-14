@@ -1,8 +1,8 @@
 package twizansk.hivemind.integration;
 
+import twizansk.hivemind.api.model.Model;
 import twizansk.hivemind.api.model.ModelUpdater;
-import twizansk.hivemind.common.Model;
-import twizansk.hivemind.messages.drone.MsgUpdateModel;
+import twizansk.hivemind.api.model.MsgUpdateModel;
 
 public class IntegrationModelUpdater implements ModelUpdater {
 

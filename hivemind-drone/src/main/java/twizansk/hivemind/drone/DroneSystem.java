@@ -33,7 +33,7 @@ public class DroneSystem {
 	public static void main(String[] args) throws Exception {
 		Config config = ConfigFactory.load("drone");
 		Config dataConfig = ConfigFactory.load("data");
-		
+
 		// Get the remote path to the queen.
 		String queenPath = config.getString("hivemind.queen.path");
 		
