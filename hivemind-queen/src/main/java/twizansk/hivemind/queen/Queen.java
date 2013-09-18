@@ -1,9 +1,7 @@
 package twizansk.hivemind.queen;
 
 import twizansk.hivemind.api.model.Model;
-import twizansk.hivemind.api.model.ModelUpdater;
 import twizansk.hivemind.api.model.MsgUpdateModel;
-import twizansk.hivemind.api.model.Stepper;
 import twizansk.hivemind.common.StateMachine;
 import twizansk.hivemind.messages.drone.MsgGetModel;
 import twizansk.hivemind.messages.external.MsgConnectAndStart;
@@ -19,8 +17,7 @@ public class Queen extends StateMachine {
 		IDLE, ACTIVE
 	}
 
-	private final ModelUpdater modelUpdater;
-	private final Stepper stepper;
+	private final QueenConfig config;
 	private volatile long t = 1;
 	private volatile Model model;
 
@@ -33,7 +30,7 @@ public class Queen extends StateMachine {
 
 		public void apply(Queen actor, Object message) {
 			actor.t = 1;
-			actor.model = new Model();
+			actor.model = actor.config.modelFactory.newModel();
 		}
 	};
 	
@@ -57,18 +54,17 @@ public class Queen extends StateMachine {
 	private Action<Queen> UPDATE_MODEL = new Action<Queen>() {
 
 		public void apply(Queen actor, Object message) {
-			actor.modelUpdater.update(
+			actor.config.modelUpdater.update(
 					((MsgUpdateModel) message), 
 					actor.model, 
 					actor.t++, 
-					stepper.getStepSize());
+					actor.config.stepper.getStepSize());
 			getSender().tell(new MsgUpdateDone(actor.model), getSelf());
 		}
 	};
 	
-	public Queen(ModelUpdater modelUpdater, Stepper stepper) {
-		this.modelUpdater = modelUpdater;
-		this.stepper = stepper;
+	public Queen(QueenConfig config) {
+		this.config = config;
 		
 		// Define the state machine.
 		this.state = State.IDLE;
@@ -78,8 +74,8 @@ public class Queen extends StateMachine {
 		this.addTransition(State.ACTIVE, MsgUpdateModel.class, new Transition<Queen>(State.ACTIVE, UPDATE_MODEL));
 	}
 
-	public static Props makeProps(ModelUpdater modelUpdater, Stepper stepper) {
-		return Props.create(Queen.class, modelUpdater, stepper);
+	public static Props makeProps(QueenConfig config) {
+		return Props.create(Queen.class, config);
 	}
 
 }

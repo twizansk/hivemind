@@ -1,5 +1,7 @@
 package twizansk.hivemind.drone.data;
 
+import twizansk.hivemind.api.ComponentConfig;
+
 import com.typesafe.config.Config;
 
 /**
@@ -8,12 +10,12 @@ import com.typesafe.config.Config;
  * @author Tommer Wizansky
  *
  */
-class InMemoryCyclicCSVTrainingSetConfig {
+public class InMemoryCyclicCSVTrainingSetConfig extends ComponentConfig {
 
-	public final String path;
-	
-	public InMemoryCyclicCSVTrainingSetConfig(Config config) {
-		this.path = config.getString("hivemind.data.trainingset.inmemorycycliccsv.path");
+	@Override
+	protected Object createComponent(Config config) {
+		String path = config.getString("hivemind.data.trainingset.inmemorycycliccsv.path");
+		return new InMemoryCyclicCSVTrainingSet(path);
 	}
 	
 }

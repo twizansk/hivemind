@@ -1,13 +1,15 @@
 package twizansk.hivemind.queen;
 
+import twizansk.hivemind.api.ComponentConfig;
+
 import com.typesafe.config.Config;
 
-class ConstantStepperConfig {
+public class ConstantStepperConfig extends ComponentConfig {
 
-	final double stepSize;
-	
-	public ConstantStepperConfig(Config config) {
-		this.stepSize = config.getDouble("hivemind.queen.stepper.constant.stepSize");
+	@Override
+	protected Object createComponent(Config config) {
+		double stepSize = config.getDouble("hivemind.queen.stepper.constant.stepSize");
+		return new ConstantStepper(stepSize);
 	}
 	
 }

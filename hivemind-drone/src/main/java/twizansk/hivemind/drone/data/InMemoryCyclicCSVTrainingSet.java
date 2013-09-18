@@ -12,8 +12,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.typesafe.config.Config;
-
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.api.data.TrainingSet;
 
@@ -28,17 +26,15 @@ import twizansk.hivemind.api.data.TrainingSet;
  */
 public class InMemoryCyclicCSVTrainingSet implements TrainingSet {
 
-	private InMemoryCyclicCSVTrainingSetConfig config;
+	private final String path;
 	private BufferedReader reader;
 	private List<double[]> X;
 	private List<Double> y;
 	private List<Integer> indexes;
 	private Integer t;
-
-	@Override
-	public void init(Config config) {
-		this.config = new InMemoryCyclicCSVTrainingSetConfig(config);
-		this.reset();
+	
+	public InMemoryCyclicCSVTrainingSet(String path) {
+		this.path = path;
 	}
 
 	@Override
@@ -60,7 +56,7 @@ public class InMemoryCyclicCSVTrainingSet implements TrainingSet {
 			if (reader != null) {
 				reader.close();
 			}
-			URI uri = ClassLoader.getSystemResource(config.path).toURI();
+			URI uri = ClassLoader.getSystemResource(this.path).toURI();
 			Charset charset = Charset.forName("US-ASCII");
 			Path file = Paths.get(uri.getPath());
 			this.reader = Files.newBufferedReader(file, charset);

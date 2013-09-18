@@ -2,8 +2,6 @@ package twizansk.hivemind.queen;
 
 import twizansk.hivemind.api.model.Stepper;
 
-import com.typesafe.config.Config;
-
 /**
  * A simple stepper implementation that returns a constant, pre-configured, step size
  * 
@@ -12,16 +10,16 @@ import com.typesafe.config.Config;
  */
 public class ConstantStepper implements Stepper {
 
-	private ConstantStepperConfig config;
+	private final double stepSize;
 	
-	@Override
-	public double getStepSize() {
-		return this.config.stepSize;
+	public ConstantStepper(double stepSize) {
+		super();
+		this.stepSize = stepSize;
 	}
 
 	@Override
-	public void init(Config config) {
-		this.config = new ConstantStepperConfig(config);
+	public double getStepSize() {
+		return this.stepSize;
 	}
 
 	@Override

@@ -100,7 +100,8 @@ public class DroneTest {
 		try {
 			MockObjectiveFunction objectiveFunction = new MockObjectiveFunction();
 			MockTrainingSet trainingSet = new MockTrainingSet();
-			Props props = Drone.makeProps(objectiveFunction, trainingSet, new MockActorLookupFactory(lookupCallback, "akka://QueenSystem/user/testQueen"));
+			Props props = Drone.makeProps(
+					new DroneConfig(objectiveFunction, trainingSet, new MockActorLookupFactory(lookupCallback, "akka://QueenSystem/user/testQueen")));
 			TestActorRef<Drone> ref = TestActorRef.create(system, props, "testDroneUpdateModel");
 			Drone drone = ref.underlyingActor();
 			initializer.init(drone);
@@ -220,7 +221,7 @@ public class DroneTest {
 				{
 					State.STARTING, 
 					State.ACTIVE, 
-					new MsgModel(new Model()),
+					new MsgModel(new Model(2)),
 					TestActorRef.create(ActorSystem.create("QueenSystem"), MockActor.makeProps(), "testQueen"),
 					new Initializer() {
 						public void init(UntypedActor actor) throws Exception {
@@ -252,7 +253,7 @@ public class DroneTest {
 				{
 					State.ACTIVE, 
 					State.ACTIVE, 
-					new MsgUpdateDone(new Model()),
+					new MsgUpdateDone(new Model(2)),
 					TestActorRef.create(ActorSystem.create("QueenSystem"), MockActor.makeProps(), "testQueen"),
 					new Initializer() {
 						public void init(UntypedActor actor) throws Exception {

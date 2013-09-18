@@ -6,13 +6,10 @@ import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import twizansk.hivemind.api.data.EmptyDataSet;
 import twizansk.hivemind.api.data.TrainingSample;
-import twizansk.hivemind.api.data.TrainingSet;
 import twizansk.hivemind.api.model.Gradient;
 import twizansk.hivemind.api.model.Model;
 import twizansk.hivemind.api.model.MsgUpdateModel;
-import twizansk.hivemind.api.model.ObjectiveFunction;
 import twizansk.hivemind.common.ActorLookup;
-import twizansk.hivemind.common.ActorLookupFactory;
 import twizansk.hivemind.common.StateMachine;
 import twizansk.hivemind.drone.data.DataFetcher;
 import twizansk.hivemind.messages.drone.MsgFetchNext;
@@ -49,9 +46,9 @@ public final class Drone extends StateMachine {
 	}
 
 	private final static Timeout timeout = new Timeout(Duration.create(5, "seconds"));
-	private final ObjectiveFunction<Model> objectiveFunction;
 	private final ActorRef dataFetcher;
 	private final ActorLookup queenLookup;
+	private final DroneConfig config;
 	
 	private ActorRef queen;
 
@@ -145,13 +142,14 @@ public final class Drone extends StateMachine {
 	};
 	
 	
-	public Drone(ObjectiveFunction<Model> objectiveFunction, TrainingSet trainingSet, ActorLookupFactory actorLookupFactory) {
-		this.objectiveFunction = objectiveFunction;
-		this.queenLookup = actorLookupFactory.create(this.getContext(), this.getSelf());
+	public Drone(DroneConfig config) {
+		this.config = config;
+		this.queenLookup = config.actorLookupFactory.create(this.getContext(), this.getSelf());
 		this.state = State.DISCONNECTED;
 
 		// Create supervised actors.
-		this.dataFetcher = this.getContext().actorOf(DataFetcher.makeProps(trainingSet));
+		this.dataFetcher = this.getContext().actorOf(DataFetcher.makeProps(config.trainingSet));
+		config.trainingSet.reset();
 		
 		// Define the state machine
 		this.addTransition(State.DISCONNECTED, MsgConnectAndStart.class, new Transition<>(State.CONNECTING, CONNECT));
@@ -167,8 +165,8 @@ public final class Drone extends StateMachine {
 		this.addTransition(Terminated.class, new Transition<>(State.CONNECTING, CONNECT));
 	}
 
-	public static Props makeProps(ObjectiveFunction<?> objectiveFunction, TrainingSet trainingSet, ActorLookupFactory actorLookupFactory) {
-		return Props.create(Drone.class, objectiveFunction, trainingSet, actorLookupFactory);
+	public static Props makeProps(DroneConfig config) {
+		return Props.create(Drone.class, config);
 	}
 
 	/**
@@ -213,7 +211,7 @@ public final class Drone extends StateMachine {
 	 * model.
 	 */
 	private MsgUpdateModel calculateModelUpdate(TrainingSample sample, Model model) {
-		Gradient gradient = this.objectiveFunction.getGradient(sample, model);
+		Gradient gradient = this.config.objectiveFunction.getGradient(sample, model);
 		return MessageFactory.createUpdateModel(gradient);
 	}
 }

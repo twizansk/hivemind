@@ -1,17 +1,11 @@
 package twizansk.hivemind.drone;
 
-import com.typesafe.config.Config;
-
 import twizansk.hivemind.api.data.TrainingSample;
 import twizansk.hivemind.api.data.TrainingSet;
 
 class MockTrainingSet implements TrainingSet {
 
 	private boolean gotSample = false;
-
-	@Override
-	public void init(Config config) {
-	}
 	
 	@Override
 	public TrainingSample getNext() {

@@ -1,22 +1,20 @@
 package twizansk.hivemind.queen;
 
-import com.typesafe.config.Config;
-
 import twizansk.hivemind.api.model.Stepper;
 
 public class DecayingStepper implements Stepper {
 
 	private long t = 0;
-	private DecayingStepperConfig config;
+	private final double decayConstant;
 	
-	@Override
-	public void init(Config config) {
-		this.config = new DecayingStepperConfig(config);
+
+	public DecayingStepper(double alpha) {
+		this.decayConstant = alpha;
 	}
 
 	@Override
 	public double getStepSize() {
-		return config.alpha / (config.alpha + t++);
+		return decayConstant / (decayConstant + t++);
 	}
 
 	@Override

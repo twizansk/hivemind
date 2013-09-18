@@ -8,6 +8,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import twizansk.hivemind.api.model.Model;
+import twizansk.hivemind.api.model.ModelFactory;
 import twizansk.hivemind.api.model.ModelUpdater;
 import twizansk.hivemind.api.model.MsgUpdateModel;
 import twizansk.hivemind.api.model.Stepper;
@@ -27,8 +28,6 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.testkit.TestActorRef;
-
-import com.typesafe.config.Config;
 
 /**
  * Test state machine transitions for queen.
@@ -88,13 +87,16 @@ public class QueenTest {
 		ActorSystem system = ActorSystem.create("DroneSystem");
 		try {
 			MockModelUpdater modelUpdater = new MockModelUpdater();
-			Props props = Queen.makeProps(
-				modelUpdater,
-				new Stepper() {
-					public void init(Config config) {}
-					public void reset() {}
-					public double getStepSize() {return 1;}
-				});
+			QueenConfig config = new QueenConfig(
+					modelUpdater, 
+					new ModelFactory() {
+						public Model newModel() {return new Model(2);}
+					}, 
+					new Stepper() {
+						public void reset() {}
+						public double getStepSize() {return 1;}
+					});
+			Props props = Queen.makeProps(config);
 			TestActorRef<Queen> ref = TestActorRef.create(system, props, "testQueen");
 			Queen queen = ref.underlyingActor();
 			initializer.init(queen);

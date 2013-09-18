@@ -1,6 +1,5 @@
 package twizansk.hivemind.api.model;
 
-import twizansk.hivemind.api.Configurable;
 
 /**
  * Classes implementing the Stepper interface are responsible for determining
@@ -9,7 +8,7 @@ import twizansk.hivemind.api.Configurable;
  * @author Tommer Wizansky
  * 
  */
-public interface Stepper extends Configurable {
+public interface Stepper {
 
 	/**
 	 * Get the step size for the next model update.

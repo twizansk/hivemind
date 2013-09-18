@@ -8,18 +8,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import com.typesafe.config.Config;
-
-import twizansk.hivemind.api.data.TrainingSet;
 import twizansk.hivemind.api.data.TrainingSample;
+import twizansk.hivemind.api.data.TrainingSet;
 
 public class IntegrationTrainingSet implements TrainingSet {
 
 	private BufferedReader reader;
-	
-	@Override
-	public void init(Config config) {
-	}
 	
 	@Override
 	public TrainingSample getNext() {
