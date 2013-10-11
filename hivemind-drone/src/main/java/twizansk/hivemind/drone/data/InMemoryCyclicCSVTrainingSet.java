@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,7 +57,11 @@ public class InMemoryCyclicCSVTrainingSet implements TrainingSet {
 			if (reader != null) {
 				reader.close();
 			}
-			URI uri = ClassLoader.getSystemResource(this.path).toURI();
+			URL url = ClassLoader.getSystemResource(this.path);
+			if (url == null) {
+				throw new RuntimeException("Data set " + this.path + " not found");
+			}
+			URI uri = url.toURI();
 			Charset charset = Charset.forName("US-ASCII");
 			Path file = Paths.get(uri.getPath());
 			this.reader = Files.newBufferedReader(file, charset);

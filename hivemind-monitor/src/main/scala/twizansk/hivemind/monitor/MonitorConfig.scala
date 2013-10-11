@@ -1,10 +1,9 @@
 package twizansk.hivemind.monitor
 
 import com.typesafe.config.Config
+
 import twizansk.hivemind.api.model.BatchObjectiveFunction
 import twizansk.hivemind.api.model.Model
-import twizansk.hivemind.common.ActorLookupFactory
-import twizansk.hivemind.common.DefaultActorLookupFactory
 
 /**
  * Config class for the Monitor actor.
@@ -19,10 +18,12 @@ object MonitorConfig {
     
     return new MonitorConfig(
         config.getInt("hivemind.monitor.batchSize"),
-        objective)
+        objective,
+        queenPath)
   }
 }
 
 case class MonitorConfig(
     batchSize: Int, 
-    objective: BatchObjectiveFunction[Model])
+    objective: BatchObjectiveFunction[Model],
+    queenPath: String)
