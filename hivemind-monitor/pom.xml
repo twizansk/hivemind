@@ -1,0 +1,29 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>hivemind-monitor</artifactId>
+	<name>HiveMind :: Monitor</name>
+	<parent>
+		<groupId>twizansk.hivemind</groupId>
+		<artifactId>hivemind-parent</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+
+	<dependencies>
+	
+		<!-- Hivemind -->
+		<dependency>
+	      	<groupId>${groupId}</groupId>
+	  		<artifactId>hivemind-common</artifactId>
+	  		<version>${version}</version>
+      	</dependency>
+	
+		<!-- Test -->
+		<dependency>
+			<groupId>org.scalatest</groupId>
+			<artifactId>scalatest_2.10</artifactId>
+			<version>2.0.RC1-SNAP4</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+</project>

@@ -8,7 +8,7 @@ import twizansk.hivemind.api.model.ObjectiveFunction;
 public class IntegrationObjective implements ObjectiveFunction<Model> {
 
 	@Override
-	public Gradient getGradient(TrainingSample sample, Model model) {
+	public Gradient singlePointGradient(TrainingSample sample, Model model) {
 		double[] x = sample.x;
 		double y = sample.y;
 		double[] params = model.params;

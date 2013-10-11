@@ -10,18 +10,18 @@ import org.testng.annotations.Test;
 import scala.Some;
 import twizansk.hivemind.api.model.Model;
 import twizansk.hivemind.api.model.MsgUpdateModel;
+import twizansk.hivemind.common.RemoteActor;
 import twizansk.hivemind.common.StateMachine;
 import twizansk.hivemind.drone.Drone.State;
 import twizansk.hivemind.messages.drone.MsgGetInitialModel;
 import twizansk.hivemind.messages.drone.MsgGetModel;
 import twizansk.hivemind.messages.external.MsgConnectAndStart;
+import twizansk.hivemind.messages.external.MsgReset;
 import twizansk.hivemind.messages.external.MsgStop;
 import twizansk.hivemind.messages.queen.MsgModel;
 import twizansk.hivemind.messages.queen.MsgUpdateDone;
 import twizansk.hivemind.test.Initializer;
 import twizansk.hivemind.test.MockActor;
-import twizansk.hivemind.test.MockActorLookupFactory;
-import twizansk.hivemind.test.MockCallback;
 import twizansk.hivemind.test.Validatable;
 import twizansk.hivemind.test.Validator;
 import akka.actor.ActorIdentity;
@@ -56,35 +56,19 @@ public class DroneTest {
 
 	private static class DroneValidatable implements Validatable {
 		
-		final MockLookupCallback lookupCallback;
 		final UntypedActor actor; 
 		final TestActorRef<MockActor> sender; 
 		final MockTrainingSet trainingSet; 
 		final MockObjectiveFunction objectiveFunction;
 
-		DroneValidatable(MockLookupCallback lookupCallback, UntypedActor actor, TestActorRef<MockActor> sender,
+		DroneValidatable(UntypedActor actor, TestActorRef<MockActor> sender,
 				MockTrainingSet trainingSet, MockObjectiveFunction objectiveFunction) {
 			super();
-			this.lookupCallback = lookupCallback;
 			this.actor = actor;
 			this.sender = sender;
 			this.trainingSet = trainingSet;
 			this.objectiveFunction = objectiveFunction;
 		}
-	}
-	
-	private static class MockLookupCallback implements MockCallback {
-		Boolean executed;
-		
-		@Override
-		public void onExecute(Object... args) {
-			executed = true;
-		}
-		
-		Boolean wasExecuted() {
-			return executed;
-		}
-		
 	}
 	
 	@Test(dataProvider="forStateTransition")
@@ -95,13 +79,16 @@ public class DroneTest {
 			TestActorRef<MockActor> sender,
 			Initializer initializer, 
 			Validator<DroneValidatable> validator) throws Exception {
-		MockLookupCallback lookupCallback = new MockLookupCallback();		
 		ActorSystem system = ActorSystem.create("DroneSystem");
 		try {
 			MockObjectiveFunction objectiveFunction = new MockObjectiveFunction();
 			MockTrainingSet trainingSet = new MockTrainingSet();
 			Props props = Drone.makeProps(
-					new DroneConfig(objectiveFunction, trainingSet, new MockActorLookupFactory(lookupCallback, "akka://QueenSystem/user/testQueen")));
+					new DroneConfig(
+							objectiveFunction, 
+							trainingSet, 
+							"akka://QueenSystem/user/testQueen",
+							"akka://MonitorSystem/user/testMonitor"));
 			TestActorRef<Drone> ref = TestActorRef.create(system, props, "testDroneUpdateModel");
 			Drone drone = ref.underlyingActor();
 			initializer.init(drone);
@@ -109,7 +96,7 @@ public class DroneTest {
 			ref.tell(message, sender == null ? system.deadLetters() : sender);
 			Thread.sleep(500);
 			Assert.assertEquals(stateField.get(drone), finalState);
-			validator.validate(new DroneValidatable(lookupCallback, drone, sender, trainingSet, objectiveFunction));
+			validator.validate(new DroneValidatable(drone, sender, trainingSet, objectiveFunction));
 		} finally {
 			system.shutdown();
 		}
@@ -129,22 +116,6 @@ public class DroneTest {
 					},
 					new Validator<DroneValidatable>() {
 						public void validate(DroneValidatable validatable) {
-							Assert.assertTrue(validatable.lookupCallback.wasExecuted());
-						}
-					}
-				},
-				{
-					State.CONNECTING, 
-					State.CONNECTING, 
-					MsgConnectAndStart.instance(),
-					null,
-					new Initializer() {
-						public void init(UntypedActor actor) throws Exception {
-						}
-					},
-					new Validator<DroneValidatable>() {
-						public void validate(DroneValidatable validatable) {
-							Assert.assertTrue(validatable.lookupCallback.wasExecuted());
 						}
 					}
 				},
@@ -156,14 +127,16 @@ public class DroneTest {
 					null,
 					new Initializer() {
 						public void init(UntypedActor actor) throws Exception {
-							queenField.set(actor, null);
+							((RemoteActor)queenField.get(actor)).setRef(
+									TestActorRef.create(ActorSystem.create("QueenSystem"), MockActor.makeProps(), "testQueen"));
 						}
 					},
 					new Validator<DroneValidatable>() {
 						@SuppressWarnings("unchecked")
 						public void validate(DroneValidatable validatable) {
 							try {
-								MockActor queen = ((TestActorRef<MockActor>) queenField.get(validatable.actor)).underlyingActor();
+								MockActor queen = ((TestActorRef<MockActor>)((RemoteActor) queenField.get(validatable.actor)).ref())
+										.underlyingActor();
 								Assert.assertNotNull(queen);
 							} catch (IllegalArgumentException | IllegalAccessException e) {
 								throw new RuntimeException(e);
@@ -178,14 +151,16 @@ public class DroneTest {
 					null,
 					new Initializer() {
 						public void init(UntypedActor actor) throws Exception {
-							queenField.set(actor, TestActorRef.create(ActorSystem.create("QueenSystem"), MockActor.makeProps(), "testQueen"));
+							((RemoteActor)queenField.get(actor)).setRef(
+									TestActorRef.create(ActorSystem.create("QueenSystem"), MockActor.makeProps(), "testQueen"));
 						}
 					},
 					new Validator<DroneValidatable>() {
 						@SuppressWarnings("unchecked")
 						public void validate(DroneValidatable validatable) {
 							try {
-								MockActor queen = ((TestActorRef<MockActor>) queenField.get(validatable.actor)).underlyingActor();
+								MockActor queen = ((TestActorRef<MockActor>)((RemoteActor) queenField.get(validatable.actor)).ref())
+										.underlyingActor();
 								Assert.assertNotNull(queen);
 								Assert.assertEquals(queen.getLastMessage(), MsgGetModel.instance());
 								
@@ -202,14 +177,16 @@ public class DroneTest {
 					null,
 					new Initializer() {
 						public void init(UntypedActor actor) throws Exception {
-							queenField.set(actor, TestActorRef.create(ActorSystem.create("QueenSystem"), MockActor.makeProps(), "testQueen"));
+							((RemoteActor)queenField.get(actor)).setRef(
+									TestActorRef.create(ActorSystem.create("QueenSystem"), MockActor.makeProps(), "testQueen"));
 						}
 					},
 					new Validator<DroneValidatable>() {
 						@SuppressWarnings("unchecked")
 						public void validate(DroneValidatable validatable) {
 							try {
-								MockActor queen = ((TestActorRef<MockActor>) queenField.get(validatable.actor)).underlyingActor();
+								MockActor queen = ((TestActorRef<MockActor>)((RemoteActor) queenField.get(validatable.actor)).ref())
+										.underlyingActor();
 								Assert.assertEquals(queen.getLastMessage(), MsgGetModel.instance());
 								
 							} catch (IllegalArgumentException | IllegalAccessException e) {
@@ -272,6 +249,20 @@ public class DroneTest {
 					State.ACTIVE, 
 					State.STOPPED, 
 					MsgStop.instance(),
+					null,
+					new Initializer() {
+						public void init(UntypedActor actor) throws Exception {
+						}
+					},
+					new Validator<DroneValidatable>() {
+						public void validate(DroneValidatable validatable) {
+						}
+					}
+				},
+				{
+					State.STOPPED, 
+					State.STOPPED, 
+					MsgReset.instance(),
 					null,
 					new Initializer() {
 						public void init(UntypedActor actor) throws Exception {

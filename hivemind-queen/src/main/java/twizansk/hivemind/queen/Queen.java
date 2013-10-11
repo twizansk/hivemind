@@ -3,6 +3,7 @@ package twizansk.hivemind.queen;
 import twizansk.hivemind.api.model.Model;
 import twizansk.hivemind.api.model.MsgUpdateModel;
 import twizansk.hivemind.common.StateMachine;
+import twizansk.hivemind.common.Transition;
 import twizansk.hivemind.messages.drone.MsgGetModel;
 import twizansk.hivemind.messages.external.MsgConnectAndStart;
 import twizansk.hivemind.messages.external.MsgStop;

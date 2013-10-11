@@ -6,9 +6,9 @@
   <name>HiveMind::Parent</name>
   <packaging>pom</packaging>
   
-   <properties>
+  <properties>
      <group.id>twizansk.hivemind</group.id>
-     <akka.version>2.2.0</akka.version>
+     <akka.version>2.2.1</akka.version>
      <testng.version>6.1.1</testng.version>
      <log4j.version>1.2.17</log4j.version>
      <commons.math.version>3.2</commons.math.version>
@@ -22,6 +22,7 @@
   	<module>../hivemind-queen</module>
   	<module>../hivemind-test</module>
   	<module>../hivemind-tools</module>
+  	<module>../hivemind-monitor</module>
   </modules>
   
   <dependencies>
@@ -79,10 +80,10 @@
   <dependencyManagement>
       <dependencies>
           	<dependency>
-		    <groupId>org.apache.commons</groupId>
-		    <artifactId>commons-math3</artifactId>
-			<version>${commons.math.version}</version>
-		</dependency>
+			    <groupId>org.apache.commons</groupId>
+			    <artifactId>commons-math3</artifactId>
+			    <version>${commons.math.version}</version>
+			</dependency>
       </dependencies>
   </dependencyManagement>
   

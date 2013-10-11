@@ -21,7 +21,11 @@ public class QueenSystem {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		Config config = ConfigFactory.load("queen");
+		String confFile = System.getProperty("hivemind.conf");
+		if (confFile == null) {
+			confFile = "hivemind"; 
+		}
+		Config config = ConfigFactory.load(confFile);
 		QueenConfig queenConfig = QueenConfig.createConfig(config);
 		new QueenSystem().init(queenConfig);
 	}

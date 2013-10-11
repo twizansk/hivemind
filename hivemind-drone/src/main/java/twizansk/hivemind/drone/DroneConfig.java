@@ -4,8 +4,6 @@ import twizansk.hivemind.api.ComponentConfig;
 import twizansk.hivemind.api.data.TrainingSet;
 import twizansk.hivemind.api.model.Model;
 import twizansk.hivemind.api.model.ObjectiveFunction;
-import twizansk.hivemind.common.ActorLookupFactory;
-import twizansk.hivemind.common.DefaultActorLookupFactory;
 
 import com.typesafe.config.Config;
 
@@ -21,13 +19,14 @@ public class DroneConfig {
 	
 	public final ObjectiveFunction<Model> objectiveFunction; 
 	public final TrainingSet trainingSet;
-	public final ActorLookupFactory actorLookupFactory;
+	public final String monitorPath;
+	public final String queenPath;
 	
 	@SuppressWarnings("unchecked")
-	public static DroneConfig createConfig(Config config, Config dataConfig) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+	public static DroneConfig createConfig(Config config) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
 		// Get the remote path to the queen.
 		String queenPath = config.getString("hivemind.queen.path");
-		ActorLookupFactory actorLookupFactory = new DefaultActorLookupFactory(queenPath);
+		String monitorPath = config.getString("hivemind.monitor.path");
 		
 		// Initialize the objective function.
 		String objectiveClassName = config.getString("hivemind.drone.objective");
@@ -35,16 +34,21 @@ public class DroneConfig {
 		ObjectiveFunction<Model> objective = (ObjectiveFunction<Model>) objectiveClass.newInstance();
 		
 		// Initialize the training set.
-		TrainingSet trainingSet = (TrainingSet) ComponentConfig.create(dataConfig, "hivemind.data.trainingset.config");		
+		TrainingSet trainingSet = (TrainingSet) ComponentConfig.create(config, "hivemind.data.trainingset.config");		
 		
-		return new DroneConfig(objective, trainingSet, actorLookupFactory);
+		return new DroneConfig(objective, trainingSet, queenPath, monitorPath);
 	}
 
-	public DroneConfig(ObjectiveFunction<Model> objectiveFunction, TrainingSet trainingSet, ActorLookupFactory actorLookupFactory) {
+	public DroneConfig(
+			ObjectiveFunction<Model> objectiveFunction, 
+			TrainingSet trainingSet, 
+			String queenPath,
+			String monitorPath) {
 		super();
 		this.objectiveFunction = objectiveFunction;
 		this.trainingSet = trainingSet;
-		this.actorLookupFactory = actorLookupFactory;
+		this.queenPath = queenPath;
+		this.monitorPath = monitorPath;
 	}
 
 	

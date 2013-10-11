@@ -21,6 +21,12 @@
 	  		<artifactId>hivemind-queen</artifactId>
 	  		<version>${version}</version>
        </dependency>
+       
+       <dependency>
+	      	<groupId>${groupId}</groupId>
+	  		<artifactId>hivemind-monitor</artifactId>
+	  		<version>${version}</version>
+       </dependency>
       	
        <dependency>
 	      	<groupId>${groupId}</groupId>

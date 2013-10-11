@@ -19,15 +19,17 @@ public class DroneSystem {
 		final ActorSystem system = ActorSystem.create("DroneSystem");
 		
 		// Create the drone actor and start it.
-		ActorRef drone = system.actorOf(Drone.makeProps(config), 
-			"drone");
+		ActorRef drone = system.actorOf(Drone.makeProps(config), "drone");
 		drone.tell(MsgConnectAndStart.instance(), null);
 	}
 	
 	public static void main(String[] args) throws Exception {
-		Config config = ConfigFactory.load("drone");
-		Config dataConfig = ConfigFactory.load("data");
-		DroneConfig droneConfig = DroneConfig.createConfig(config, dataConfig);
+		String confFile = System.getProperty("hivemind.conf");
+		if (confFile == null) {
+			confFile = "hivemind"; 
+		}
+		Config config = ConfigFactory.load(confFile);
+		DroneConfig droneConfig = DroneConfig.createConfig(config);
 		new DroneSystem().init(droneConfig);
 	}
 	

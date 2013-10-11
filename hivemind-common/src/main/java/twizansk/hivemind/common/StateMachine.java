@@ -3,9 +3,12 @@ package twizansk.hivemind.common;
 import java.util.HashMap;
 import java.util.Map;
 
+import akka.actor.ActorIdentity;
+import akka.actor.Terminated;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.remote.RemotingLifecycleEvent;
 
 public abstract class StateMachine extends UntypedActor {
 
@@ -13,61 +16,8 @@ public abstract class StateMachine extends UntypedActor {
 	
 	protected Object state;
 	private Map<Object, Map<Object, Transition<?>>> transitions = new HashMap<Object, Map<Object,Transition<?>>>();
-	private Map<Object, Transition<?>> commonTransitions = new HashMap<Object, StateMachine.Transition<?>>();
-
-	/**
-	 * A transition from one state to another, triggered by a message. The
-	 * transition involves the mutation of the state and the execution of a
-	 * predefined action. The transition can also include a condition. If the
-	 * condition fails, the transition is aborted.
-	 * 
-	 * @author Tommer Wizansky
-	 * 
-	 * @param <T>
-	 */
-	public static class Transition<T extends StateMachine> {
-		
-		private final Object state;
-		private final Action<T> action;
-		private final Condition<T> condition;
-		
-		private LoggingAdapter log;
-		
-		public Transition(Object state, Action<T> action, Condition<T> condition) {
-			this.state = state;
-			this.action = action;
-			this.condition = condition;
-		}
-		
-		public Transition(Object state, Action<T> action) {
-			this(state, action, null);
-		}
-		
-		public Transition(Object state) {
-			this(state, null, null);
-		}
-
-		@SuppressWarnings("unchecked")
-		private boolean apply(StateMachine stateMachine, Object message) {
-			if (this.condition == null || this.condition.isSatisfied((T) stateMachine, message)) {
-				if (this.action != null) {
-					this.action.apply((T) stateMachine, message);
-				}
-				if (log != null) {
-					log.debug(String.format("message: %s, transition: %s --> %s", 
-						message.getClass().getSimpleName(), stateMachine.state, this.state));
-				}
-				stateMachine.state = this.state;
-				return true;
-			}
-			return false;
-		}
-		
-		void setLog(LoggingAdapter log) {
-			this.log = log;
-		}
-
-	}
+	private Map<Object, Transition<?>> commonTransitions = new HashMap<Object, Transition<?>>();
+	private Map<String, RemoteActor> remoteActors = new HashMap<>();
 
 	/**
 	 * An action to be performed on a state machine given a message.
@@ -96,6 +46,10 @@ public abstract class StateMachine extends UntypedActor {
 
 	}
 
+	public StateMachine() {
+		this.getContext().system().eventStream().subscribe(this.getSelf(), RemotingLifecycleEvent.class);
+	}
+	
 	/**
 	 * Add a transition to the state machine
 	 * 
@@ -126,6 +80,7 @@ public abstract class StateMachine extends UntypedActor {
 	 */
 	protected void addTransition(Object message, Transition<?> transition) {
 		commonTransitions.put(message, transition);
+		transition.setLog(log);
 	}
 
 	/**
@@ -139,23 +94,76 @@ public abstract class StateMachine extends UntypedActor {
 	 */
 	protected Transition<?> getTransition(Object state, Object message) {
 		// Look for the transition in the common transitions first.
-		if (commonTransitions.containsKey(message.getClass())) {
+		Transition<?> transition = commonTransitions.get(message.getClass());
+		if (transition != null && transition.checkCondition(this, message)) {
 			return commonTransitions.get(message.getClass());
 		}
 		
 		// Now look in the transtions specific to the given state.
 		Map<Object, Transition<?>> stateTransitions = this.transitions.get(state);
-		return stateTransitions == null ? null : stateTransitions.get(message.getClass());
+		transition = stateTransitions == null ? null : stateTransitions.get(message.getClass());
+		return transition == null || !transition.checkCondition(this, message) ? null : transition;
 	}
-
+	
+	/**
+	 * Register a remote actor with the state machine.  A remote actro will be monitored for lifecycle events and 
+	 * will reconnect in event of termination.
+	 * 
+	 * @param path
+	 * 		The remote path.
+	 * @return
+	 * 		A reference to the {@link RemoteActor} object.
+	 */
+	protected RemoteActor registerRemoteActor(String path) {
+		RemoteActor remoteActor = new RemoteActor(getSelf(), path, getContext());
+		remoteActors.put(path, remoteActor);
+		return remoteActor;
+	}
+	
+	/**
+	 * When a terminated event is received, set the actor's state to terminated and lookup it up again.
+	 * 
+	 * @param event
+	 */
+	private void onTerminated(Terminated event) {
+		RemoteActor remoteActor = remoteActors.get(event.actor().path().toString());
+		if (remoteActor != null) {
+			remoteActor.terminated();
+			remoteActor.lookup();
+		}
+	}
+	
+	/**
+	 * When an {@link ActorIdentity} message is received, initialize the associated remote actor.
+	 * 
+	 * @param identity
+	 */
+	private void onIdentity(ActorIdentity identity) {
+		RemoteActor remoteActor = remoteActors.get(identity.getRef().path().toString());
+		if (remoteActor != null) {
+			remoteActor.setRef(identity.getRef());
+			this.getContext().watch(identity.getRef());
+		}
+	}
+	
 	@Override
 	public void onReceive(Object message) throws Exception {
+		if (message instanceof Terminated) {
+			// Handle remote actor termination
+			this.onTerminated((Terminated) message);
+		} else if (message instanceof ActorIdentity) {
+			// Handle remote actor reconnection
+			this.onIdentity((ActorIdentity) message);
+		} 
+
+		// Handle all other events.
 		Transition<?> transition = this.getTransition(this.state, message);
 		if (transition != null) {
 			transition.apply(this, message);
 		} else {
 			unhandled(message);
 		}
+		
 	}
 
 }

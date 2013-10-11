@@ -10,7 +10,7 @@ class MockObjectiveFunction implements ObjectiveFunction<Model> {
 	private boolean gotGradient = false;
 
 	@Override
-	public Gradient getGradient(TrainingSample sample, Model model) {
+	public Gradient singlePointGradient(TrainingSample sample, Model model) {
 		this.gotGradient = true;
 		return new Gradient(null);
 	}

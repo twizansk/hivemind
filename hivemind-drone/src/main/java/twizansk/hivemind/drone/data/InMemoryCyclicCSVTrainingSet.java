@@ -68,6 +68,11 @@ public class InMemoryCyclicCSVTrainingSet implements TrainingSet {
 			this.indexes = new ArrayList<>();
 			int n = 0;
 			while ((line = reader.readLine()) != null) {
+				// # at the beginning of the line can be used as a comment.
+				if (line.trim().startsWith("#")) {
+					continue;
+				}
+				
 				String[] arr = line.split(",\\s*");
 				double[] rowData = new double[arr.length - 1];
 				for (int i = 0; i < arr.length - 1; i++) {
