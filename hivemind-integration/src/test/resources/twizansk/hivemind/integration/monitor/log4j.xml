@@ -10,7 +10,7 @@
  </appender>
 
  <appender name="messages" class="org.apache.log4j.RollingFileAppender">
-  <param name="File" value="/var/log/hivemind/messages-monitor.log" />
+  <param name="File" value="/var/log/hivemind/monitor.log" />
   <param name="MaxFileSize" value="20MB" />
   <param name="MaxBackupIndex" value="10" />
   <layout class="org.apache.log4j.PatternLayout">
@@ -24,7 +24,7 @@
  </logger>
  
  <logger name="twizansk.hivemind.monitor" additivity="false">
-  <level value="DEBUG" />
+  <level value="INFO" />
   <appender-ref ref="messages" />
  </logger>
 

@@ -72,6 +72,7 @@ class Monitor(config: MonitorConfig) extends Actor with HivemindFSM[State, Monit
       val model = Await.result(modelFuture, timeout.duration).asInstanceOf[MsgModel].model
       val J = config.objective.objective(Arrays.asList(state.samples: _*), model)
       state.samples.clear()
+      log.info("J = {}", J)
       stay using state.copy(stats = Some(Stats(J)))
     }
 
