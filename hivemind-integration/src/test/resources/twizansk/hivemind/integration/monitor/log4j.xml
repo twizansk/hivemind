@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/"
+ debug="false">
+
+ <appender name="console" class="org.apache.log4j.ConsoleAppender">
+  <layout class="org.apache.log4j.PatternLayout">
+   <param name="ConversionPattern" value="[%c{1}] - %m%n" />
+  </layout>
+ </appender>
+
+ <appender name="messages" class="org.apache.log4j.RollingFileAppender">
+  <param name="File" value="/var/log/hivemind/messages-monitor.log" />
+  <param name="MaxFileSize" value="20MB" />
+  <param name="MaxBackupIndex" value="10" />
+  <layout class="org.apache.log4j.PatternLayout">
+   <param name="ConversionPattern" value="%d{yyyy-MM-dd hh:mm:ss} %-5p %c{1} - %m%n" />
+  </layout>
+ </appender>
+
+ <logger name="akka" additivity="false">
+  <level value="INFO" />
+  <appender-ref ref="console" />
+ </logger>
+ 
+ <logger name="twizansk.hivemind.monitor" additivity="false">
+  <level value="DEBUG" />
+  <appender-ref ref="messages" />
+ </logger>
+
+ <root>
+  <level value="ERROR" />
+  <appender-ref ref="console" />
+ </root>
+
+</log4j:configuration>

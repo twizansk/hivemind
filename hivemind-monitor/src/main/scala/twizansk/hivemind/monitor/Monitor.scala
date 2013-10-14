@@ -24,8 +24,12 @@ import twizansk.hivemind.messages.queen.MsgModel
 case object MsgSnapshot
 
 // data
-case class Stats(J: Double)
-case class MonitorState(stats: Option[Stats], samples: ArrayBuffer[TrainingSample])
+case class Stats(J: Double) {
+  override def toString = s"{ J = $J }"
+}
+case class MonitorState(stats: Option[Stats], samples: ArrayBuffer[TrainingSample]) {
+  override def toString = s"{ stats = ${stats.mkString} }"
+}
 
 // states
 sealed trait State

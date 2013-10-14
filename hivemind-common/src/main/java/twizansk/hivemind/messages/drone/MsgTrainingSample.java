@@ -21,4 +21,9 @@ public class MsgTrainingSample implements Serializable {
 		this.trainingSample = trainingSample;
 	}
 	
+	@Override
+	public String toString() {
+		return trainingSample.toString();
+	}
+	
 }
